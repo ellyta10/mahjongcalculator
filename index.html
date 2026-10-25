@@ -980,24 +980,53 @@
             tabs[next].click();
         });
 
-        // GENERATE LAS VEGAS CHIP VECTOR SVG
+        // GENERATE REFERENCE-INSPIRED, LAYERED VEGAS CHIP VECTOR SVG
+        let chipSvgInstanceCounter = 0;
         function generateChipSVG(valueKey, size = 64) {
             const conf = VEGAS_CHIP_CONFIG[valueKey] || { outer: '#64748b', inner: '#334155', border: '#cbd5e1', text: '#0f172a', val: valueKey.toString(), stripe: '#e2e8f0' };
+            const id = `chip-${String(valueKey).replace(/[^a-zA-Z0-9]/g, '')}-${chipSvgInstanceCounter++}`;
+            const valueSize = conf.val.includes('K') ? 17 : (conf.val.length === 1 ? 25 : conf.val.length === 2 ? 22 : 19);
+            const showRimText = size >= 32;
             return `
-                <svg width="${size}" height="${size}" viewBox="0 0 100 100" class="select-none pointer-events-none">
-                    <circle cx="50" cy="50" r="47" fill="${conf.outer}" stroke="${conf.border}" stroke-width="2.5" />
-                    <g stroke="${conf.stripe}" stroke-width="7" stroke-dasharray="11 15">
-                        <circle cx="50" cy="50" r="43" fill="none" opacity="0.9" />
+                <svg width="${size}" height="${size}" viewBox="0 0 100 100" class="select-none pointer-events-none" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="${id}-rim" x1="0" y1="0" x2="0.18" y2="1">
+                            <stop offset="0%" stop-color="${conf.stripe}" />
+                            <stop offset="31%" stop-color="${conf.outer}" />
+                            <stop offset="76%" stop-color="${conf.outer}" />
+                            <stop offset="100%" stop-color="#171918" stop-opacity="0.78" />
+                        </linearGradient>
+                        <linearGradient id="${id}-face" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#fffefa" />
+                            <stop offset="100%" stop-color="#e9e8e3" />
+                        </linearGradient>
+                        <path id="${id}-top-arc" d="M 29 50 A 21 21 0 0 1 71 50" />
+                        <path id="${id}-bottom-arc" d="M 29 50 A 21 21 0 0 0 71 50" />
+                    </defs>
+                    <ellipse cx="50" cy="94.5" rx="36" ry="3.2" fill="#182019" opacity="0.14" />
+                    <circle cx="50" cy="49" r="46" fill="url(#${id}-rim)" stroke="#30332f" stroke-width="1.3" />
+                    <circle cx="50" cy="49" r="44" fill="none" stroke="${conf.border}" stroke-width="1" opacity="0.78" />
+                    <circle cx="50" cy="49" r="40.5" fill="none" stroke="${conf.stripe}" stroke-width="8.5" stroke-dasharray="18 9.9" stroke-linecap="butt" transform="rotate(-90 50 49)" />
+                    <circle cx="50" cy="49" r="35.5" fill="none" stroke="#171918" stroke-width="1" opacity="0.26" />
+                    <circle cx="50" cy="49" r="32.8" fill="${conf.inner}" stroke="${conf.border}" stroke-width="1.2" />
+                    <circle cx="50" cy="49" r="29.1" fill="url(#${id}-face)" stroke="#c8c6be" stroke-width="1.1" />
+                    <circle cx="50" cy="49" r="27.1" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.9" />
+                    <path d="M17 41 A34 34 0 0 1 34 19" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.44" stroke-linecap="round" />
+                    <g fill="none" stroke="${conf.border}" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+                        <g transform="translate(50 9)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(90 49) rotate(90)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(50 89) rotate(180)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(10 49) rotate(270)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
                     </g>
-                    <g stroke="#ffffff" stroke-width="3" stroke-dasharray="6 20">
-                        <circle cx="50" cy="50" r="43" fill="none" opacity="0.6" />
-                    </g>
-                    <circle cx="50" cy="50" r="33" fill="${conf.inner}" stroke="${conf.outer}" stroke-width="1.5" />
-                    <circle cx="50" cy="50" r="28" fill="#ffffff" stroke="${conf.border}" stroke-width="1.5" class="chip-inlay" />
-                    <circle cx="50" cy="50" r="26" fill="#fafafa" opacity="0.95" />
-                    <text x="50" y="32" font-family="'Plus Jakarta Sans', sans-serif" font-size="5.5" font-weight="700" fill="#64748b" text-anchor="middle" letter-spacing="0.8">LAS VEGAS</text>
-                    <text x="50" y="54" font-family="'IBM Plex Mono', monospace" font-size="${conf.val.length > 3 ? '13' : '16'}" font-weight="700" fill="${conf.text}" text-anchor="middle" dominant-baseline="middle">${conf.val}</text>
-                    <text x="50" y="71" font-family="'Plus Jakarta Sans', sans-serif" font-size="4.5" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="0.5">POKER CLUB</text>
+                    ${showRimText ? `
+                        <text fill="#262925" font-family="Georgia, 'Times New Roman', serif" font-size="5.1" font-weight="700" letter-spacing="1.1">
+                            <textPath href="#${id}-top-arc" startOffset="50%" text-anchor="middle">LAS VEGAS</textPath>
+                        </text>
+                        <text fill="#3b3b37" font-family="Georgia, 'Times New Roman', serif" font-size="4.25" font-weight="700" letter-spacing="0.7">
+                            <textPath href="#${id}-bottom-arc" startOffset="50%" text-anchor="middle">POKER CLUB</textPath>
+                        </text>
+                    ` : ''}
+                    <text x="50" y="53" font-family="Georgia, 'Times New Roman', serif" font-size="${valueSize}" font-weight="700" fill="${conf.text}" text-anchor="middle" dominant-baseline="middle" letter-spacing="-0.6">${conf.val}</text>
                 </svg>
             `;
         }
