@@ -373,6 +373,9 @@
                 <button onclick="openSettingsModal()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#242A23] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Atur Nilai Rate Chip" aria-label="Atur nilai rate chip">
                     <i data-lucide="settings" class="w-4 h-4 text-[#64866B]"></i>
                 </button>
+                <button id="btn-reset-all-names-chips" type="button" onclick="confirmResetAllNamesAndChips()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#2A201F] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Reset nama dan chip keempat pemain" aria-label="Reset nama dan chip keempat pemain">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-[#D77F79]"></i>
+                </button>
                 <!-- Audio Toggle -->
                 <button id="btn-sound" aria-pressed="true" onclick="toggleAudio()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#242A23] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Suara chip" aria-label="Aktif/nonaktifkan suara chip">
                     <i data-lucide="volume-2" id="icon-sound" class="w-4 h-4 text-[#64866B]"></i>
@@ -438,15 +441,28 @@
             <!-- PLAYER PROFILE & SCORE DASHBOARD CARD -->
             <section class="panel-card rounded-xl p-3.5 shadow-sm relative overflow-hidden">
 
-                <!-- PLAYER NAME & SEAT TAG EDITABLE BAR -->
-                <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#343B32]">
-                    <div class="flex items-center gap-2 flex-1">
-                        <i data-lucide="user-edit" class="w-4 h-4 text-[#64866B] flex-shrink-0"></i>
-                        <input type="text" id="active-player-name-input" onchange="updateActivePlayerName(this.value)" placeholder="Nama Pemain..." class="bg-[#121612] border border-[#343B32] hover:border-[#64866B] focus:border-[#64866B] text-[#F0F0E7] font-bold text-xs rounded-lg px-2.5 py-1.5 w-full focus:outline-none transition-colors">
+                <!-- PLAYER NAME AND SAVE CONTROLS -->
+                <div class="mb-2 pb-2 border-b border-[#343B32]">
+                    <label for="active-player-name-input" class="block text-[10px] font-semibold text-[#A5AA9E] mb-1">Nama Pemain</label>
+                    <div class="flex items-center gap-2">
+                        <div id="player-name-block" class="flex items-center gap-2 flex-1 min-w-0 cursor-text" onclick="preparePlayerNameEntry()">
+                            <i data-lucide="user-edit" class="w-4 h-4 text-[#64866B] flex-shrink-0"></i>
+                            <input type="text" id="active-player-name-input" aria-label="Nama pemain untuk kursi aktif" aria-describedby="player-name-help" onblur="restorePlayerNameIfEmpty()" onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveActivePlayerName(); }" placeholder="Nama Pemain..." class="bg-[#121612] border border-[#343B32] hover:border-[#64866B] focus:border-[#64866B] text-[#F0F0E7] font-bold text-xs rounded-lg px-2.5 py-1.5 w-full min-w-0 focus:outline-none transition-colors">
+                        </div>
+                        <button id="btn-save-player-name" type="button" onclick="saveActivePlayerName()" class="min-h-[42px] min-w-[48px] px-3 py-2 rounded-lg bg-[#64866B] hover:bg-[#789B7E] text-[#101310] font-bold text-xs">OK</button>
                     </div>
-                    <span id="current-seat-tag" class="text-[10px] font-semibold text-[#C3A66A] bg-[#121612] px-2 py-1 rounded border border-[#343B32] flex-shrink-0">
-                        Kursi 1 (Timur)
-                    </span>
+                    <div class="mt-2">
+                        <span id="current-seat-tag" class="text-[10px] font-semibold text-[#C3A66A] bg-[#121612] px-2 py-1 rounded border border-[#343B32]">Kursi 1 (Timur)</span>
+                    </div>
+                </div>
+                <div id="player-name-help" class="mb-3 rounded-lg bg-[#121612] border border-[#343B32] px-3 py-2.5 text-[11px] text-[#A5AA9E]">
+                    <p class="font-semibold text-[#C3A66A] mb-1">Cara mengisi nama pemain</p>
+                    <ol class="list-decimal pl-4 space-y-0.5">
+                        <li>Pilih kursi pemain pada baris kursi di atas.</li>
+                        <li>Klik blok nama untuk mengganti, lalu ketik nama baru.</li>
+                        <li>Tekan <strong class="text-[#F0F0E7]">OK</strong> untuk menyimpan. Nama tampil di Rekap dan Histori.</li>
+                    </ol>
+                    <p class="mt-1 text-[#879287]">Tombol reset di sebelah Pengaturan mengembalikan nama default dan mengosongkan chip untuk keempat pemain. Histori serta data lain tidak berubah.</p>
                 </div>
 
                 <!-- DUAL TARGET MODE CONTROLLER -->
@@ -593,10 +609,13 @@
             <section class="panel-card rounded-xl p-3.5 shadow-sm" aria-labelledby="game-history-title">
                 <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#DCE5DC]">
                     <div>
-                        <h2 id="game-history-title" class="text-sm font-bold text-[#26332C]">Histori Permainan</h2>
+                        <h2 id="game-history-title" tabindex="-1" class="text-sm font-bold text-[#26332C]">Histori Permainan</h2>
                         <p class="text-xs text-[#657267] mt-0.5">Hasil yang sudah disimpan di perangkat ini.</p>
                     </div>
-                    <span id="game-history-count" class="text-xs font-semibold text-[#657267]">0 permainan</span>
+                    <div class="flex items-center gap-2">
+                        <span id="game-history-count" class="text-xs font-semibold text-[#657267] whitespace-nowrap">0 permainan</span>
+                        <button id="btn-clear-game-history" type="button" onclick="confirmClearGameHistory()" class="hidden min-h-[38px] px-2.5 py-1.5 rounded-lg border border-[#E4B7B4] bg-white hover:bg-[#FFF3F2] text-[#A53D39] font-bold text-xs whitespace-nowrap" aria-label="Hapus semua histori permainan">Hapus semua</button>
+                    </div>
                 </div>
                 <div id="game-history-list" class="space-y-2" aria-live="polite"></div>
             </section>
@@ -726,6 +745,9 @@
         }
 
         let audioCtx = null;
+        const IDLE_WELCOME_TIMEOUT_MS = 6 * 60 * 60 * 1000;
+        const LAST_SITE_OPEN_KEY = 'mahjong_last_site_open_at_v1';
+        let idleWelcomePending = false;
 
         // REALISTIC CERAMIC CHIP AUDIO SYNTHESIZER
         function playChipSound() {
@@ -838,8 +860,38 @@
             } catch (e) {}
         }
 
+        function touchLastSiteOpenTimestamp() {
+            try { localStorage.setItem(LAST_SITE_OPEN_KEY, String(Date.now())); } catch (e) {}
+        }
+
+        function checkIdleWelcome() {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (!welcomeScreen || !welcomeScreen.classList.contains('hidden')) return;
+            let lastOpen = 0;
+            let welcomeSeen = false;
+            try {
+                lastOpen = Number(localStorage.getItem(LAST_SITE_OPEN_KEY)) || 0;
+                welcomeSeen = localStorage.getItem('mahjong_welcome_seen_v1') === 'true';
+            } catch (e) {}
+            const now = Date.now();
+            touchLastSiteOpenTimestamp();
+            if (welcomeSeen && lastOpen > 0 && now - lastOpen >= IDLE_WELCOME_TIMEOUT_MS) {
+                idleWelcomePending = true;
+                welcomeScreen.classList.remove('hidden');
+                document.getElementById('welcome-start').focus();
+            }
+        }
+
         // INITIALIZATION
         window.onload = function() {
+            let lastOpen = 0;
+            let welcomeSeen = false;
+            try {
+                lastOpen = Number(localStorage.getItem(LAST_SITE_OPEN_KEY)) || 0;
+                welcomeSeen = localStorage.getItem('mahjong_welcome_seen_v1') === 'true';
+            } catch (e) {}
+            const idleForSixHours = welcomeSeen && lastOpen > 0 && Date.now() - lastOpen >= IDLE_WELCOME_TIMEOUT_MS;
+            touchLastSiteOpenTimestamp();
             loadSavedState();
             const soundButton = document.getElementById('btn-sound');
             const soundIcon = document.getElementById('icon-sound');
@@ -851,23 +903,34 @@
             renderChipKeypadGrid();
             renderUI();
             lucide.createIcons();
-            let welcomeSeen = false;
-            try { welcomeSeen = localStorage.getItem('mahjong_welcome_seen_v1') === 'true'; } catch (e) {}
-            if (welcomeSeen) {
+            if (welcomeSeen && !idleForSixHours) {
                 document.getElementById('welcome-screen').classList.add('hidden');
-                } else {
+            } else {
+                if (idleForSixHours) idleWelcomePending = true;
                 document.getElementById('welcome-start').focus();
             }
+            window.addEventListener('pagehide', touchLastSiteOpenTimestamp);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') touchLastSiteOpenTimestamp();
+                else checkIdleWelcome();
+            });
         };
 
         function startExperience() {
             const welcomeScreen = document.getElementById('welcome-screen');
             if (welcomeScreen.classList.contains('welcome-exit')) return;
+            const isIdleResume = idleWelcomePending;
+            idleWelcomePending = false;
             welcomeScreen.classList.add('welcome-exit');
             try { localStorage.setItem('mahjong_welcome_seen_v1', 'true'); } catch (e) {}
             speakWelcomeGreeting();
             document.getElementById('welcome-audio-status').textContent = 'Selamat datang. Aplikasi mulai digunakan.';
-            openSettingsModal();
+            if (isIdleResume) {
+                const resumeTab = appState.mainTab === 'recap' ? 'recap' : 'calc';
+                switchMainTab(resumeTab);
+            } else {
+                openSettingsModal();
+            }
             const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             setTimeout(() => {
                 welcomeScreen.classList.add('hidden');
@@ -1000,7 +1063,7 @@
         }
 
         // TARGET MODE: 'starting' VS 'hand'
-        function setTargetMode(target) {
+        function setTargetMode(target, silent = false) {
             appState.targetMode = target;
             const btnStarting = document.getElementById('target-mode-starting');
             const btnHand = document.getElementById('target-mode-hand');
@@ -1010,11 +1073,11 @@
             if (target === 'starting') {
                 btnStarting.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-[#C3A66A] text-[#101310]";
                 btnHand.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-[#A5AA9E] hover:text-[#F0F0E7]";
-                showToast("Mode Tuts: Modal Chip", "Modal Chip");
+                if (!silent) showToast("Mode Tuts: Modal Chip", "Modal Chip");
             } else {
                 btnHand.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-[#64866B] text-[#101310]";
                 btnStarting.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-[#A5AA9E] hover:text-[#F0F0E7]";
-                showToast("Mode Tuts: Chip di tangan", "Chip di tangan");
+                if (!silent) showToast("Mode Tuts: Chip di tangan", "Chip di tangan");
             }
             renderUI();
         }
@@ -1068,12 +1131,66 @@
             showToast('On Hand ditandai habis', '0 chip');
         }
 
+        // Prepare the current name field for replacement while preserving the saved name until a new value is entered.
+        function preparePlayerNameEntry() {
+            const input = document.getElementById('active-player-name-input');
+            if (!input) return;
+            const savedName = getPlayerName(appState.activeSeat).trim();
+            if (input.value.trim() === savedName) input.value = '';
+            input.focus();
+        }
+
+        function restorePlayerNameIfEmpty() {
+            const input = document.getElementById('active-player-name-input');
+            if (input && !input.value.trim()) input.value = getPlayerName(appState.activeSeat);
+        }
+
+        function saveActivePlayerName() {
+            const input = document.getElementById('active-player-name-input');
+            if (!input) return;
+            const newName = input.value.trim();
+            if (!newName) {
+                restorePlayerNameIfEmpty();
+                showToast('Nama pemain tidak boleh kosong', 'Nama');
+                return;
+            }
+            updateActivePlayerName(newName);
+            showToast('Nama pemain berhasil disimpan', 'OK');
+        }
+
         // UPDATE PLAYER NAME
         function updateActivePlayerName(newName) {
-            if (!newName.trim()) return;
+            if (!newName || !newName.trim()) return;
             appState.playerNames[appState.activeSeat] = newName.trim();
             saveState();
             renderUI();
+        }
+
+        function getDefaultPlayerName(seat) {
+            return ({ East: 'Pemain 1', South: 'Pemain 2', West: 'Pemain 3', North: 'Pemain 4' })[seat] || 'Pemain';
+        }
+
+        function confirmResetAllNamesAndChips() {
+            showConfirmModal(
+                'Reset Nama & Chip Semua Pemain?',
+                'Kembalikan nama ke default dan kosongkan Modal Chip serta Chip di Tangan keempat pemain? Histori, rate, kursi aktif, mode, dan data lainnya tidak akan berubah.',
+                () => {
+                    const seats = ['East', 'South', 'West', 'North'];
+                    appState.playerNames = appState.playerNames || {};
+                    appState.startingChips = appState.startingChips || {};
+                    appState.players = appState.players || {};
+                    appState.handFinalized = appState.handFinalized || {};
+                    seats.forEach(seat => {
+                        appState.playerNames[seat] = getDefaultPlayerName(seat);
+                        appState.startingChips[seat] = {};
+                        appState.players[seat] = {};
+                        appState.handFinalized[seat] = false;
+                    });
+                    saveState();
+                    renderUI();
+                    showToast('Nama dan chip keempat pemain direset', 'Reset');
+                }
+            );
         }
 
         function getPlayerName(seat) {
@@ -1726,8 +1843,16 @@
             pendingConfirmAction = null;
             const returnFocus = confirmReturnFocus;
             confirmReturnFocus = null;
-            if (returnFocus && typeof returnFocus.focus === 'function' && returnFocus.offsetParent !== null) returnFocus.focus();
-            else document.getElementById('tab-btn-calc').focus();
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen && !welcomeScreen.classList.contains('hidden')) {
+                document.getElementById('welcome-start').focus();
+            } else if (returnFocus && typeof returnFocus.focus === 'function' && returnFocus.offsetParent !== null) {
+                returnFocus.focus();
+            } else {
+                const historyTitle = document.getElementById('game-history-title');
+                if (historyTitle && historyTitle.offsetParent !== null) historyTitle.focus();
+                else document.getElementById('tab-btn-calc').focus();
+            }
         }
 
         document.addEventListener('keydown', event => {
@@ -1827,9 +1952,11 @@
                     appState.handFinalized = { East: false, South: false, West: false, North: false };
                     appState.startingChips = { East: {}, South: {}, West: {}, North: {} };
                     appState.activeSeat = 'East';
-                    appState.targetMode = 'starting';
+                    setTargetMode('starting', true);
+                    appState.mainTab = 'calc';
                     saveState();
                     switchMainTab('calc');
+                    speakWelcomeGreeting();
                     showToast('Histori tersimpan; ronde baru siap dimulai', 'Game Baru');
                 }
             );
@@ -1841,6 +1968,8 @@
             if (!list || !count) return;
             const history = Array.isArray(appState.history) ? appState.history : [];
             count.textContent = `${history.length} ${history.length === 1 ? 'permainan' : 'permainan'}`;
+            const clearButton = document.getElementById('btn-clear-game-history');
+            if (clearButton) clearButton.classList.toggle('hidden', history.length === 0);
             list.innerHTML = '';
             if (!history.length) {
                 const empty = document.createElement('p');
@@ -1862,7 +1991,16 @@
                 const rate = document.createElement('span');
                 rate.className = 'text-xs text-[#657267] text-right';
                 rate.textContent = `1 chip = ${formatRupiah(Number(game.chipRate) || 1000)}`;
-                header.append(title, rate);
+                const headerActions = document.createElement('div');
+                headerActions.className = 'flex items-center gap-2 flex-shrink-0';
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'min-h-[38px] px-2.5 py-1.5 rounded-lg border border-[#E4B7B4] bg-white hover:bg-[#FFF3F2] text-[#A53D39] font-bold text-xs';
+                deleteButton.textContent = 'Hapus';
+                deleteButton.setAttribute('aria-label', `Hapus catatan Permainan ${history.length - index}`);
+                deleteButton.addEventListener('click', () => confirmDeleteHistoryEntry(index));
+                headerActions.append(rate, deleteButton);
+                header.append(title, headerActions);
                 article.appendChild(header);
 
                 const players = Array.isArray(game.players) ? game.players : [];
@@ -1902,6 +2040,41 @@
                 article.appendChild(details);
                 list.appendChild(article);
             });
+        }
+
+        function confirmDeleteHistoryEntry(index) {
+            const history = Array.isArray(appState.history) ? appState.history : [];
+            const game = history[index];
+            if (!game) return;
+            const savedDate = new Date(game.savedAt || Date.now());
+            const dateLabel = Number.isNaN(savedDate.getTime())
+                ? 'tanggal tidak diketahui'
+                : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(savedDate);
+            showConfirmModal(
+                'Hapus Histori Permainan?',
+                `Hapus catatan Permainan ${history.length - index} (${dateLabel})? Data ronde aktif tidak akan terpengaruh.`,
+                () => {
+                    appState.history.splice(index, 1);
+                    saveState();
+                    renderUI();
+                    showToast('Catatan permainan dihapus dari histori', 'Histori');
+                }
+            );
+        }
+
+        function confirmClearGameHistory() {
+            const count = Array.isArray(appState.history) ? appState.history.length : 0;
+            if (!count) return;
+            showConfirmModal(
+                'Hapus Semua Histori?',
+                `Hapus semua ${count} catatan histori permainan? Ronde yang sedang berjalan, nama pemain, dan rate tidak akan dihapus.`,
+                () => {
+                    appState.history = [];
+                    saveState();
+                    renderUI();
+                    showToast('Semua histori permainan dihapus', 'Histori');
+                }
+            );
         }
 
         function saveState() {
