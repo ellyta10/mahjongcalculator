@@ -596,8 +596,6 @@
                         <button id="btn-start-new-game" type="button" onclick="confirmStartNewGame()" class="min-h-[44px] px-3 py-2 rounded-lg bg-[#527560] hover:bg-[#42634F] text-white font-bold text-xs flex items-center justify-center gap-2">
                             <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Simpan &amp; Mulai Permainan Baru</span>
                         </button>
-<button id="btn-send-room-result" type="button" onclick="sendResultToRoom()" class="min-h-[44px] px-3 py-2 rounded-lg bg-[#B08D4B] hover:bg-[#9B783D] text-white font-bold text-xs flex items-center justify-center gap-2">
-<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Hasil ke Room</span></button>
                     </div>
                     <p id="game-history-feedback" class="text-xs text-[#527560] mt-2" role="status" aria-live="polite"></p>
                 </section>
@@ -2108,81 +2106,6 @@
             );
         }
 
-
-        let roomCalculationContext = null;
-
-        function sendResultToRoom() {
-            if (!roomCalculationContext) { showToast('Buka kalkulator dari Room yang sedang aktif', 'Room belum terhubung'); return; }
-            appState.chipRate = Number(roomCalculationContext.chip_rate) || Number(appState.chipRate) || 1000;
-            saveState();
-            renderUI();
-            const seats = ['East','South','West','North'];
-            const complete = seats.every(seat => Object.keys(appState.startingChips[seat] || {}).length > 0 && hasFinalHand(seat));
-            if (!complete) { showToast('Lengkapi modal dan On Hand 4 pemain', 'Belum lengkap'); return; }
-            const players = seats.map((seat,index) => {
-                const starting = calculateSeatStartingTotal(seat);
-                const final = calculateSeatTotal(seat);
-                const net = final - starting;
-                return { seat_no:index+1, display_name:getPlayerName(seat), starting_points:starting, final_points:final, net_points:net, net_rupiah:net * (Number(appState.chipRate)||1000) };
-            });
-            if (players.reduce((sum,p)=>sum+p.net_points,0)!==0) { showToast('Hasil meja belum balance','Periksa rekap'); return; }
-            if (window.parent===window) { showToast('Kalkulator mandiri tetap dapat digunakan','Standalone'); return; }
-            window.parent.postMessage({type:'mahjong-room-calculation-submit',requestId:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),snapshot:{chip_rate:Number(appState.chipRate)||1000,players}},window.location.origin);
-            showToast('Hasil dikirim ke Dealer','Menunggu konfirmasi');
-        }
-
-
-        function roomChipMap(amount, rate) {
-            let remaining = Math.max(0, Math.floor(Number(amount) / Number(rate)));
-            if (remaining === 0) return { 1: 0 };
-            const denominations = ['10K','5K','2K','1K',500,200,100,50,25,20,10,5,2,1];
-            const result = {};
-            denominations.forEach(key => {
-                const value = getNumericChipValue(key);
-                const qty = Math.floor(remaining / value);
-                if (qty > 0) { result[key] = qty; remaining -= qty * value; }
-            });
-            return result;
-        }
-
-        function applyRoomCalculatorContext(context) {
-            if (!context || !Array.isArray(context.players) || context.players.length !== 4) return;
-            roomCalculationContext = context;
-            const sendButton = document.getElementById('btn-send-room-result');
-            if (sendButton) sendButton.classList.remove('hidden');
-            const seats = ['East','South','West','North'];
-            appState.chipRate = Number(context.chip_rate) || 1000;
-            seats.forEach((seat, index) => {
-                const player = context.players.find(item => Number(item.seat_no) === index + 1);
-                if (!player) return;
-                appState.playerNames[seat] = player.display_name || ('Pemain ' + (index + 1));
-                appState.startingChips[seat] = roomChipMap(player.starting_balance || 0, appState.chipRate);
-                appState.players[seat] = {};
-                appState.handFinalized[seat] = false;
-            });
-            appState.activeSeat = 'East';
-            appState.targetMode = 'starting';
-            saveState();
-            renderUI();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const sendButton = document.getElementById('btn-send-room-result');
-            if (sendButton && window.parent === window) sendButton.classList.add('hidden');
-        });
-
-        window.addEventListener('message', function(event) {
-            if (event.origin !== window.location.origin || event.source !== window.parent) return;
-            if (event.data && event.data.type === 'mahjong-room-calculator-context') {
-                applyRoomCalculatorContext(event.data.context);
-            }
-            if (event.data && event.data.type === 'mahjong-room-calculator-lock') {
-                roomCalculationContext = null;
-                const sendButton = document.getElementById('btn-send-room-result');
-                if (sendButton) sendButton.classList.add('hidden');
-            }
-        });
-
         function saveState() {
             try {
                 localStorage.setItem('mahjong_exchange_state_v7', JSON.stringify(appState));
@@ -2202,5 +2125,151 @@
             }
         }
     </script>
+
+<script>
+(function(){
+ "use strict";
+ var roomContext=null,roomPending=0,roomSending=false;
+ var seats=["East","South","West","North"];
+ var seatNo={East:1,South:2,West:3,North:4};
+ var seatByNo={1:"East",2:"South",3:"West",4:"North"};
+ var baseAddChip=window.addChip,baseSwitchSeat=window.switchSeat,baseRenderUI=window.renderUI;
+ var panel=document.createElement("section");
+ panel.id="room-exchange-panel";
+ panel.className="hidden panel-card rounded-xl p-3 shadow-sm";
+ panel.innerHTML='<div class="flex items-start justify-between gap-3"><div class="min-w-0"><b id="room-exchange-title" class="text-sm">Room Chip Exchange</b><p id="room-exchange-instruction" class="text-xs mt-1 text-[#657267]"></p></div><span id="room-exchange-rate" class="text-xs font-bold whitespace-nowrap"></span></div><div class="mt-3 flex items-center justify-between gap-2"><div><div id="room-exchange-amount-label" class="text-[10px] text-[#657267]">Nominal transfer</div><b id="room-exchange-amount" class="text-lg font-mono-tabular">0 chips</b></div><button id="room-exchange-clear" type="button" class="hidden min-h-[40px] px-3 rounded-lg border border-[#DCE5DC] text-xs font-bold">Kosongkan</button><button id="room-save-starting" type="button" class="hidden min-h-[42px] px-3 rounded-lg bg-[#527560] text-white text-xs font-bold">Simpan modal & mulai</button></div><p id="room-exchange-own-balance" class="text-xs mt-2 text-[#657267]"></p>';
+ var seatNav=document.getElementById("seat-East")?.closest("nav");
+ if(seatNav)seatNav.parentNode.insertBefore(panel,seatNav);
+ function rupiah(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);}
+ function roomPlayer(no){return roomContext&&roomContext.players.find(function(p){return Number(p.seat_no)===Number(no);});}
+ function currentOwn(){return roomContext&&roomPlayer(roomContext.own_seat_no);}
+ function notifyParent(payload){window.parent.postMessage(payload,location.origin);}
+ function roomToast(text){if(typeof window.showToast==="function")window.showToast(text,"Room");}
+ function renderRoomUI(){
+  if(!roomContext){panel.classList.add("hidden");return;}
+  panel.classList.remove("hidden");
+  var rate=Number(roomContext.chip_rate)||1000;
+  var mode=roomContext.mode;
+  var own=currentOwn();
+  document.getElementById("room-exchange-rate").textContent="1 chip = "+rupiah(rate);
+  seats.forEach(function(seat){
+   var p=roomPlayer(seatNo[seat]);
+   var name=document.getElementById("seat-tab-name-"+seat);
+   var status=document.getElementById("seat-status-"+seat);
+   if(p){if(name)name.textContent=p.display_name;if(status)status.textContent=(mode==="setup"?"Modal ":"Saldo ")+Number(mode==="setup"?(appState.startingChips[seat]?calculateSeatStartingTotal(seat):0):p.balance_chips||0).toLocaleString("id-ID")+" chip";}
+   else{if(name)name.textContent="Menunggu";if(status)status.textContent="Belum bergabung";}
+   var button=document.getElementById("seat-"+seat);
+   if(button)button.disabled=mode==="active"&&(!p||Number(p.seat_no)===Number(roomContext.own_seat_no)||roomSending);
+  });
+  var title=document.getElementById("room-exchange-title"),instruction=document.getElementById("room-exchange-instruction");
+  var amount=document.getElementById("room-exchange-amount"),label=document.getElementById("room-exchange-amount-label");
+  var clear=document.getElementById("room-exchange-clear"),save=document.getElementById("room-save-starting");
+  var ownBalance=document.getElementById("room-exchange-own-balance");
+  if(mode==="setup"&&roomContext.is_host){
+   title.textContent="Atur modal chip awal";
+   instruction.textContent="Pilih posisi East, South, West, atau North. Tekan tuts chip untuk mengisi modal masing-masing pemain.";
+   label.textContent="Modal chip posisi aktif";
+   amount.textContent=calculateSeatStartingTotal(appState.activeSeat).toLocaleString("id-ID")+" chips";
+   clear.classList.add("hidden");save.classList.remove("hidden");
+   ownBalance.textContent="Keempat pemain harus bergabung sebelum modal disimpan dan permainan dimulai.";
+   document.getElementById("card-block-starting")?.classList.remove("hidden");
+   document.getElementById("card-block-hand")?.classList.add("hidden");
+   document.getElementById("copy-starting-all-bar")?.classList.remove("hidden");
+  }else if(mode==="active"){
+   title.textContent="Live Chip Exchange";
+   instruction.textContent="Tekan tuts chip untuk menentukan jumlah, lalu sentuh nama lawan pada posisi yang dituju. Transfer langsung.";
+   label.textContent="Nominal yang akan dikirim";
+   amount.textContent=roomPending.toLocaleString("id-ID")+" chips";
+   clear.classList.toggle("hidden",roomPending===0);save.classList.add("hidden");
+   ownBalance.textContent=own?"Saldo kamu: "+Number(own.balance_chips||0).toLocaleString("id-ID")+" chips · "+rupiah(own.balance_rupiah):"Akun ini belum memiliki kursi pemain.";
+   document.getElementById("card-block-starting")?.classList.remove("hidden");
+   document.getElementById("card-block-hand")?.classList.remove("hidden");
+   var sp=document.getElementById("display-starting-pts"),sr=document.getElementById("display-starting-rp"),hp=document.getElementById("display-hand-pts"),hr=document.getElementById("display-hand-rp");
+   if(sp)sp.textContent=Number(own&&own.balance_chips||0).toLocaleString("id-ID")+" chips";
+   if(sr)sr.textContent=rupiah(own&&own.balance_rupiah);
+   if(hp)hp.textContent=roomPending.toLocaleString("id-ID")+" chips";
+   if(hr)hr.textContent=rupiah(roomPending*rate);
+   var tray=document.getElementById("chips-breakdown-container");
+   if(tray)tray.innerHTML='<span class="text-xs text-[#657267] italic py-3 w-full text-center">Pilih posisi lawan untuk mengirim '+roomPending.toLocaleString("id-ID")+' chip.</span>';
+   document.getElementById("copy-starting-all-bar")?.classList.add("hidden");
+  }else{
+   title.textContent="Room sedang menunggu";
+   instruction.textContent="Host sedang menyiapkan modal awal atau permainan sudah ditutup.";
+   amount.textContent="—";clear.classList.add("hidden");save.classList.add("hidden");
+   ownBalance.textContent="";
+  }
+  var handTitle=document.getElementById("hand-tray-title");if(handTitle)handTitle.textContent=mode==="active"?"Nominal transfer:":"Modal chip:";
+  var startLabel=document.querySelector("#card-block-starting span");if(startLabel&&mode==="active")startLabel.textContent="Saldo tersedia:";
+  var handLabel=document.querySelector("#card-block-hand span");if(handLabel&&mode==="active")handLabel.textContent="Nominal transfer:";
+  document.getElementById("tab-btn-recap")?.classList.add("hidden");
+  document.getElementById("view-recap")?.classList.add("hidden");
+  document.querySelector('button[aria-label="Atur nilai rate chip"]')?.classList.add("hidden");
+  document.getElementById("btn-reset-all-names-chips")?.classList.add("hidden");
+ }
+ window.renderUI=function(){baseRenderUI();renderRoomUI();};
+ window.addChip=function(valueKey){
+  if(roomContext&&roomContext.mode==="active"){
+   if(roomSending)return;
+   roomPending+=getNumericChipValue(valueKey)*Number(appState.multiplier||1);
+   playChipSound();renderRoomUI();return;
+  }
+  baseAddChip(valueKey);renderRoomUI();
+ };
+ window.switchSeat=function(seat){
+  if(roomContext&&roomContext.mode==="active"){
+   if(seat===seatByNo[roomContext.own_seat_no]){roomToast("Kamu tidak bisa mengirim chip ke diri sendiri.");return;}
+   var target=roomPlayer(seatNo[seat]);
+   if(!target){roomToast("Posisi lawan belum bergabung.");return;}
+   if(roomPending<=0){roomToast("Tekan tuts chip terlebih dahulu untuk menentukan jumlah.");return;}
+   if(roomSending)return;
+   roomSending=true;renderRoomUI();
+   var requestId=crypto.randomUUID();
+   notifyParent({type:"mahjong-room-chip-transfer",to_seat_no:seatNo[seat],amount_chips:roomPending,request_id:requestId});
+   return;
+  }
+  baseSwitchSeat(seat);renderRoomUI();
+ };
+ window.setTargetMode=function(target,silent){if(roomContext){if(roomContext.mode==="setup")return baseSetTargetMode("starting",true);if(roomContext.mode==="active")return;}return baseSetTargetMode(target,silent);};
+ var baseSetTargetMode=window.setTargetMode;
+ window.openSettingsModal=function(){if(roomContext){roomToast("Rate chip sudah dikunci oleh Host.");return;}return baseOpenSettingsModal();};
+ var baseOpenSettingsModal=window.openSettingsModal;
+ document.getElementById("room-exchange-clear").addEventListener("click",function(){roomPending=0;renderRoomUI();});
+ document.getElementById("room-save-starting").addEventListener("click",function(){
+  if(!roomContext||roomContext.mode!=="setup"||!roomContext.is_host)return;
+  var starting_chips=seats.map(function(seat){return {seat_no:seatNo[seat],starting_chips:calculateSeatStartingTotal(seat)};});
+  if(starting_chips.length!==4){roomToast("Lengkapi modal empat posisi.");return;}
+  notifyParent({type:"mahjong-room-starting-balances-submit",starting_chips:starting_chips});
+ });
+ window.addEventListener("message",function(e){
+  if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
+  var msg=e.data;
+  if(msg.type==="mahjong-room-calculator-lock"){roomContext=null;roomPending=0;renderRoomUI();return;}
+  if(msg.type==="mahjong-room-calculator-context"){
+   roomContext=msg.context||null;roomPending=0;
+   if(roomContext){
+    appState.chipRate=Number(roomContext.chip_rate)||1000;
+    if(roomContext.mode==="setup"){appState.targetMode="starting";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
+    if(roomContext.mode==="active"){appState.targetMode="hand";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
+    appState.playerNames=appState.playerNames||{};
+    roomContext.players.forEach(function(p){var seat=seatByNo[p.seat_no];if(seat)appState.playerNames[seat]=p.display_name;});
+   }
+   renderUI();return;
+  }
+  if(msg.type==="mahjong-room-transfer-result"){
+   roomSending=false;
+   if(msg.ok){roomPending=0;roomToast(msg.message||"Chip berhasil dikirim.");}
+   else roomToast(msg.message||"Transfer gagal.");
+   renderRoomUI();return;
+  }
+  if(msg.type==="mahjong-room-starting-balances-result"){
+   if(msg.ok){roomToast(msg.message||"Modal tersimpan.");}
+   else roomToast(msg.message||"Gagal menyimpan modal.");
+  }
+ });
+ if(typeof window.loadSavedState==="function")window.loadSavedState();
+ if(typeof window.renderUI==="function")window.renderUI();
+})();
+</script>
+
 </body>
 </html>
