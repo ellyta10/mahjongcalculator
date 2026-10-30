@@ -2272,8 +2272,15 @@
    roomContext=nextContext;
    if(roomContext){
     appState.chipRate=Number(roomContext.chip_rate)||1000;
-    if(newContext&&roomContext.mode==="setup"){appState.targetMode="starting";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
-    if(newContext&&roomContext.mode==="active"){appState.targetMode="hand";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
+    if(newContext&&roomContext.mode==="setup"){
+    appState.startingChips={East:{},South:{},West:{},North:{}};
+    appState.players={East:{},South:{},West:{},North:{}};
+    appState.targetMode="starting";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";
+   }
+    if(newContext&&roomContext.mode==="active"){
+    appState.players={East:{},South:{},West:{},North:{}};
+    appState.targetMode="hand";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";
+   }
     appState.playerNames=appState.playerNames||{};
     roomContext.players.forEach(function(p){var seat=seatByNo[p.seat_no];if(seat)appState.playerNames[seat]=p.display_name;});
    }
