@@ -2129,7 +2129,7 @@
 <script>
 (function(){
  "use strict";
- var roomContext=null,roomPending=0,roomSending=false;
+ var roomContext=null,roomContextKey="",roomPending=0,roomSending=false;
  var seats=["East","South","West","North"];
  var seatNo={East:1,South:2,West:3,North:4};
  var seatByNo={1:"East",2:"South",3:"West",4:"North"};
@@ -2146,11 +2146,23 @@
  function notifyParent(payload){window.parent.postMessage(payload,location.origin);}
  function roomToast(text){if(typeof window.showToast==="function")window.showToast(text,"Room");}
  function renderRoomUI(){
-  if(!roomContext){panel.classList.add("hidden");return;}
+  if(!roomContext){
+   panel.classList.add("hidden");
+   document.getElementById("tab-btn-recap")?.classList.remove("hidden");
+   document.getElementById("view-recap")?.classList.remove("hidden");
+   document.querySelector('button[aria-label="Atur nilai rate chip"]')?.classList.remove("hidden");
+   document.getElementById("btn-reset-all-names-chips")?.classList.remove("hidden");
+   document.querySelectorAll("#chip-keypad-grid button").forEach(function(b){b.disabled=false;});
+   seats.forEach(function(seat){var b=document.getElementById("seat-"+seat);if(b)b.disabled=false;});
+   return;
+  }
   panel.classList.remove("hidden");
   var rate=Number(roomContext.chip_rate)||1000;
   var mode=roomContext.mode;
   var own=currentOwn();
+  document.querySelectorAll("#chip-keypad-grid button").forEach(function(b){b.disabled=mode==="locked"||(mode==="setup"&&!roomContext.is_host);});
+  document.getElementById("target-mode-starting")?.classList.add("hidden");
+  document.getElementById("target-mode-hand")?.classList.add("hidden");
   document.getElementById("room-exchange-rate").textContent="1 chip = "+rupiah(rate);
   seats.forEach(function(seat){
    var p=roomPlayer(seatNo[seat]);
@@ -2170,7 +2182,7 @@
    instruction.textContent="Pilih posisi East, South, West, atau North. Tekan tuts chip untuk mengisi modal masing-masing pemain.";
    label.textContent="Modal chip posisi aktif";
    amount.textContent=calculateSeatStartingTotal(appState.activeSeat).toLocaleString("id-ID")+" chips";
-   clear.classList.add("hidden");save.classList.remove("hidden");
+   clear.classList.add("hidden");save.classList.remove("hidden");save.disabled=roomContext.players.length!==4;
    ownBalance.textContent="Keempat pemain harus bergabung sebelum modal disimpan dan permainan dimulai.";
    document.getElementById("card-block-starting")?.classList.remove("hidden");
    document.getElementById("card-block-hand")?.classList.add("hidden");
@@ -2205,14 +2217,18 @@
   document.getElementById("view-recap")?.classList.add("hidden");
   document.querySelector('button[aria-label="Atur nilai rate chip"]')?.classList.add("hidden");
   document.getElementById("btn-reset-all-names-chips")?.classList.add("hidden");
+  document.querySelector('button[aria-label="Atur nilai rate chip"]')?.classList.add("hidden");
  }
  window.renderUI=function(){baseRenderUI();renderRoomUI();};
+ var baseSetTargetMode=window.setTargetMode;
+ var baseOpenSettingsModal=window.openSettingsModal;
  window.addChip=function(valueKey){
   if(roomContext&&roomContext.mode==="active"){
    if(roomSending)return;
    roomPending+=getNumericChipValue(valueKey)*Number(appState.multiplier||1);
    playChipSound();renderRoomUI();return;
   }
+  if(roomContext&&(roomContext.mode!=="setup"||!roomContext.is_host)){roomToast("Kalkulator sedang dikunci.");return;}
   baseAddChip(valueKey);renderRoomUI();
  };
  window.switchSeat=function(seat){
@@ -2227,12 +2243,11 @@
    notifyParent({type:"mahjong-room-chip-transfer",to_seat_no:seatNo[seat],amount_chips:roomPending,request_id:requestId});
    return;
   }
+  if(roomContext&&(roomContext.mode!=="setup"||!roomContext.is_host))return;
   baseSwitchSeat(seat);renderRoomUI();
  };
- window.setTargetMode=function(target,silent){if(roomContext){if(roomContext.mode==="setup")return baseSetTargetMode("starting",true);if(roomContext.mode==="active")return;}return baseSetTargetMode(target,silent);};
- var baseSetTargetMode=window.setTargetMode;
+ window.setTargetMode=function(target,silent){if(roomContext){if(roomContext.mode==="setup"&&roomContext.is_host)return baseSetTargetMode("starting",true);return;}return baseSetTargetMode(target,silent);};
  window.openSettingsModal=function(){if(roomContext){roomToast("Rate chip sudah dikunci oleh Host.");return;}return baseOpenSettingsModal();};
- var baseOpenSettingsModal=window.openSettingsModal;
  document.getElementById("room-exchange-clear").addEventListener("click",function(){roomPending=0;renderRoomUI();});
  document.getElementById("room-save-starting").addEventListener("click",function(){
   if(!roomContext||roomContext.mode!=="setup"||!roomContext.is_host)return;
@@ -2243,13 +2258,17 @@
  window.addEventListener("message",function(e){
   if(e.origin!==location.origin||e.source!==window.parent||!e.data)return;
   var msg=e.data;
-  if(msg.type==="mahjong-room-calculator-lock"){roomContext=null;roomPending=0;renderRoomUI();return;}
+  if(msg.type==="mahjong-room-calculator-lock"){roomContext=null;roomContextKey="";roomPending=0;roomSending=false;renderRoomUI();return;}
   if(msg.type==="mahjong-room-calculator-context"){
-   roomContext=msg.context||null;roomPending=0;
+   var nextContext=msg.context||null;
+   var nextKey=nextContext?[nextContext.room_id,nextContext.round_id,nextContext.mode].join("|"):"";
+   var newContext=nextKey!==roomContextKey;
+   if(newContext){roomPending=0;roomSending=false;roomContextKey=nextKey;}
+   roomContext=nextContext;
    if(roomContext){
     appState.chipRate=Number(roomContext.chip_rate)||1000;
-    if(roomContext.mode==="setup"){appState.targetMode="starting";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
-    if(roomContext.mode==="active"){appState.targetMode="hand";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
+    if(newContext&&roomContext.mode==="setup"){appState.targetMode="starting";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
+    if(newContext&&roomContext.mode==="active"){appState.targetMode="hand";appState.activeSeat=seatByNo[roomContext.own_seat_no]||"East";}
     appState.playerNames=appState.playerNames||{};
     roomContext.players.forEach(function(p){var seat=seatByNo[p.seat_no];if(seat)appState.playerNames[seat]=p.display_name;});
    }
