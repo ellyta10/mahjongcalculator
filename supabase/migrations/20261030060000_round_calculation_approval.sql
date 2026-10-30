@@ -72,7 +72,7 @@ begin
 
   select role into v_role from public.room_members
   where room_id = v_round.room_id and user_id = v_user and member_status = 'active';
-  if v_role not in ('dealer','player') then
+  if v_role is null or v_role not in ('dealer','player') then
     raise exception 'Only Dealer or Player can submit a result.' using errcode = '42501';
   end if;
   if v_round.status <> 'active' or not exists (
@@ -188,7 +188,7 @@ begin
 
   select role into v_role from public.room_members
   where room_id = v_sub.room_id and user_id = v_user and member_status = 'active';
-  if v_role <> 'dealer' then raise exception 'Only Dealer can review this result.' using errcode = '42501'; end if;
+  if v_role is distinct from 'dealer' then raise exception 'Only Dealer can review this result.' using errcode = '42501'; end if;
   if v_sub.status <> 'pending' then raise exception 'Submission already reviewed.' using errcode = '55000'; end if;
 
   if p_approve then
