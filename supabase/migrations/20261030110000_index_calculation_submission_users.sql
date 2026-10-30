@@ -1,2 +1,0 @@
-create index if not exists round_calculation_submissions_submitted_by_idx on public.round_calculation_submissions(submitted_by);
-create index if not exists round_calculation_submissions_reviewed_by_idx on public.round_calculation_submissions(reviewed_by);
