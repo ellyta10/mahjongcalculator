@@ -174,7 +174,7 @@ declare
   v_sub public.round_calculation_submissions%rowtype;
   v_user uuid := auth.uid();
   v_role text;
-  v_winners integer[];
+  v_winners smallint[];
 begin
   if v_user is null or p_approve is null then raise exception 'Login and decision required.' using errcode = '22023'; end if;
   select * into v_sub from public.round_calculation_submissions where id = p_submission_id for update;
@@ -189,7 +189,7 @@ begin
   if v_sub.status <> 'pending' then raise exception 'Submission already reviewed.' using errcode = '55000'; end if;
 
   if p_approve then
-    select array_agg((p->>'seat_no')::integer order by (p->>'seat_no')::integer)
+    select array_agg((p->>'seat_no')::smallint order by (p->>'seat_no')::smallint)
       into v_winners
     from jsonb_array_elements(v_sub.snapshot->'players') p
     where (p->>'net_rupiah')::numeric > 0;
