@@ -17,7 +17,7 @@ var db=window.supabase.createClient("https://civbnpdjdvyttaxzgwgs.supabase.co","
 var $=function(id){return document.getElementById(id);};
 var seatNames={1:"Timur",2:"Selatan",3:"Barat",4:"Utara"};
 var frame=document.createElement("iframe");frame.src="./calculator.html";frame.title="Mahjong Calculator";$("calculator-standalone").appendChild(frame);
-var user=null,authMode="login",room=null,member=null,data=null,channel=null,poll=null,sending=false,submissionMigrationReady=true;
+var user=null,authMode="login",room=null,member=null,data=null,channel=null,poll=null,sending=false,submissionMigrationReady=true,selectedRoundId=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function money(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);}
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(function(){$("toast").classList.add("hidden");},3000);}
@@ -37,21 +37,22 @@ async function loadMemberships(){
  var list=rooms.filter(function(x){return x.room;}).map(function(x){return '<button class="item row" style="width:100%;text-align:left;color:inherit" data-room="'+esc(x.room.id)+'"><span><b>'+esc(x.room.name)+'</b><small class="muted" style="display:block">'+esc(x.member.role)+(x.member.seat_no?" · Seat "+x.member.seat_no:"")+' · '+esc(x.room.status)+'</small></span><span class="tag">Buka</span></button>';}).join("");
  $("membership-list").innerHTML="<b>Room Saya</b>"+(list||"<p class='muted small'>Belum ada Room aktif. Buat atau gabung Room di atas.</p>");
  $("membership-list").querySelectorAll("[data-room]").forEach(function(b){b.onclick=function(){loadRoom(b.dataset.room);};});
- $("history-list").innerHTML=rooms.map(function(x){return '<button class="item row" style="width:100%;text-align:left;color:inherit" data-history-room="'+esc(x.room.id)+'"><span><b>'+esc(x.room.name)+'</b><small class="muted" style="display:block">'+esc(x.member.role)+' · '+esc(x.member.member_status)+'</small></span><span class="tag">Buka</span></button>';}).join("")||"<p class='muted small'>Belum ada riwayat Room.</p>";
- $("history-list").querySelectorAll("[data-history-room]").forEach(function(b){b.onclick=function(){loadRoom(b.dataset.historyRoom);showTab("room");};});
+ var roundGroups=await Promise.all(rooms.map(async function(x){var q=await db.from("rounds").select("id,round_no,status,created_at,started_at,archived_at").eq("room_id",x.room.id).order("round_no",{ascending:false});return {room:x.room,member:x.member,rounds:q.data||[]};}));
+ $("history-list").innerHTML=roundGroups.map(function(g){return '<div class="stack"><div class="row"><b>'+esc(g.room.name)+'</b><span class="tag">'+esc(g.member.role)+'</span></div>'+(g.rounds.map(function(r){return '<button class="item row" style="width:100%;text-align:left;color:inherit" data-history-room="'+esc(g.room.id)+'" data-history-round="'+esc(r.id)+'"><span><b>Ronde '+r.round_no+'</b><small class="muted" style="display:block">'+esc(r.status)+' · '+(r.started_at?new Date(r.started_at).toLocaleString("id-ID"):"Belum dimulai")+'</small></span><span class="tag">Lihat</span></button>';}).join("")||'<p class="muted small">Belum ada ronde.</p>')+'</div>';}).join("")||"<p class='muted small'>Belum ada riwayat Room.</p>";
+ $("history-list").querySelectorAll("[data-history-room]").forEach(function(b){b.onclick=function(){loadRoom(b.dataset.historyRoom,b.dataset.historyRound);showTab("room");};});
  if(!room&&rooms.length)await loadRoom(rooms[0].room.id);
 }
 $("create-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var r=await db.rpc("create_room",{p_name:$("room-name").value.trim(),p_dealer_display_name:$("dealer-name").value.trim()});if(r.error)throw r.error;var v=r.data||{},id=v.room_id||v.id;if(!id)throw new Error("Respons pembuatan Room tidak memuat ID Room.");if(v.invite_code)localStorage.setItem("mahjong-room-invite-"+id,v.invite_code);toast("Room berhasil dibuat.");await loadMemberships();await loadRoom(id);}catch(err){toast(err.message);}finally{b.disabled=false;}};
 $("join-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var role=$("join-role").value;var r=await db.rpc("join_room_by_code",{p_invite_code:$("invite-code").value.trim(),p_display_name:$("join-name").value.trim(),p_role:role,p_seat_no:role==="player"?Number($("join-seat").value):null});if(r.error)throw r.error;$("invite-code").value="";toast("Berhasil bergabung ke Room.");await loadMemberships();await loadRoom(r.data);}catch(err){toast(err.message);}finally{b.disabled=false;}};
-async function loadRoom(id){
- if(!user||!id)return;var rr=await db.from("rooms").select("id,name,status,active_round_id,created_at").eq("id",id).single();if(rr.error){toast(rr.error.message);return;}
+async function loadRoom(id,roundId){
+ if(!user||!id)return;selectedRoundId=roundId||null;var rr=await db.from("rooms").select("id,name,status,active_round_id,created_at").eq("id",id).single();if(rr.error){toast(rr.error.message);return;}
  var mm=await db.from("room_members").select("*").eq("room_id",id).eq("user_id",user.id).eq("member_status","active").maybeSingle();if(mm.error||!mm.data){toast("Akun bukan anggota aktif Room ini.");return;}
  room=rr.data;member=mm.data;await refreshRoom();if(channel)db.removeChannel(channel);channel=db.channel("room-"+id);
  ["room_members","rounds","round_players","round_winners","payment_obligations","payment_reports","bankruptcy_requests","chip_ledger"].concat(submissionMigrationReady?["round_calculation_submissions"]:[]).forEach(function(table){channel.on("postgres_changes",{event:"*",schema:"public",table:table,filter:"room_id=eq."+id},function(){refreshRoom();});});
  channel.subscribe();if(poll)clearInterval(poll);poll=setInterval(refreshRoom,12000);$("room-calculator-slot").classList.remove("hidden");$("room-calculator-slot").appendChild(frame);
 }
 async function refreshRoom(){
- if(!room)return;var state=await db.from("rooms").select("status,active_round_id").eq("id",room.id).single();if(state.error){toast(state.error.message);return;}room.status=state.data.status;room.active_round_id=state.data.active_round_id;var id=room.active_round_id;
+ if(!room)return;var state=await db.from("rooms").select("status,active_round_id").eq("id",room.id).single();if(state.error){toast(state.error.message);return;}room.status=state.data.status;room.active_round_id=state.data.active_round_id;var id=selectedRoundId||room.active_round_id;
  var jobs=[
  db.from("room_members").select("*").eq("room_id",room.id).eq("member_status","active").order("seat_no"),
  id?db.from("rounds").select("*").eq("id",id).maybeSingle():Promise.resolve({data:null}),
@@ -84,13 +85,13 @@ function renderRoom(){
  $("request-bankruptcy")?.addEventListener("click",requestBankruptcy);
  $("room-dashboard").querySelectorAll("[data-bankruptcy]").forEach(function(b){b.onclick=function(){reviewBankruptcy(b.dataset.bankruptcy,b.dataset.accept==="true");};});
  $("archive-round")?.addEventListener("click",archiveRound);
- if(r&&r.status==="active"&&players.length===4)sendCalculatorContext();
+ if(!selectedRoundId&&r&&r.status==="active"&&players.length===4)sendCalculatorContext();
 }
 var lastCalculatorContextKey='';function sendCalculatorContext(force){if(!data||data.players.length!==4)return;var rate=1000;var key=data.round.id+"|"+rate+"|"+data.players.map(function(p){return p.id+":"+p.starting_balance;}).join("|");if(!force&&key===lastCalculatorContextKey)return;lastCalculatorContextKey=key;frame.contentWindow?.postMessage({type:"mahjong-room-calculator-context",context:{chip_rate:rate,players:data.players.map(function(p){return {seat_no:p.seat_no,round_player_id:p.id,display_name:p.display_name,starting_balance:p.starting_balance};})}},location.origin);}
-frame.addEventListener("load",function(){if(room&&data&&data.round&&data.round.status==="active")sendCalculatorContext(true);});
+frame.addEventListener("load",function(){if(room&&!selectedRoundId&&data&&data.round&&data.round.status==="active")sendCalculatorContext(true);});
 window.addEventListener("message",async function(e){
  if(e.origin!==location.origin||e.source!==frame.contentWindow||!e.data||e.data.type!=="mahjong-room-calculation-submit")return;
- if(!room||!data||!data.round||data.round.status!=="active"){toast("Buka Room dengan ronde aktif terlebih dahulu.");return;}
+ if(!room||selectedRoundId||!data||!data.round||data.round.status!=="active"){toast("Buka Room dengan ronde aktif terlebih dahulu.");return;}
  if(!submissionMigrationReady){toast("Fitur kirim hasil menunggu migration Supabase diterapkan.");return;}
  if(sending)return;sending=true;
  try{
@@ -109,6 +110,6 @@ async function submitPayment(e,id){e.preventDefault();var amount=Number(e.curren
 async function reviewPayment(id,approve){try{var r=await db.rpc("review_payment_report",{p_report_id:id,p_approve:approve});if(r.error)throw r.error;toast("Status pembayaran diperbarui.");await refreshRoom();}catch(e){toast(e.message);}}
 async function requestBankruptcy(){try{var r=await db.rpc("request_bankruptcy",{p_round_id:data.round.id});if(r.error)throw r.error;toast("Permintaan kebangkrutan dikirim.");await refreshRoom();}catch(e){toast(e.message);}}
 async function reviewBankruptcy(id,accept){try{var r=await db.rpc("review_bankruptcy_request",{p_request_id:id,p_accept:accept});if(r.error)throw r.error;toast("Permintaan diperbarui.");await refreshRoom();}catch(e){toast(e.message);}}
-async function archiveRound(){if(!confirm("Arsipkan ronde ini dan mulai ronde berikutnya?"))return;try{var r=await db.rpc("archive_round_and_start_next",{p_round_id:data.round.id});if(r.error)throw r.error;toast("Ronde diarsipkan. Ronde berikutnya dibuat.");await refreshRoom();}catch(e){toast(e.message);}}
+async function archiveRound(){if(!confirm("Arsipkan ronde ini dan mulai ronde berikutnya?"))return;try{var r=await db.rpc("archive_round_and_start_next",{p_round_id:data.round.id});if(r.error)throw r.error;selectedRoundId=null;toast("Ronde diarsipkan. Ronde berikutnya dibuat.");await refreshRoom();}catch(e){toast(e.message);}}
 })();
 </script></body></html>
