@@ -17,7 +17,7 @@ var db=window.supabase.createClient("https://civbnpdjdvyttaxzgwgs.supabase.co","
 var $=function(id){return document.getElementById(id);};
 var seatNames={1:"Timur",2:"Selatan",3:"Barat",4:"Utara"};
 var frame=document.createElement("iframe");frame.src="./calculator.html";frame.title="Mahjong Calculator";$("calculator-standalone").appendChild(frame);
-var user=null,authMode="login",room=null,member=null,data=null,channel=null,poll=null,sending=false;
+var user=null,authMode="login",room=null,member=null,data=null,channel=null,poll=null,sending=false,submissionMigrationReady=false;
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function money(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);}
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(function(){$("toast").classList.add("hidden");},3000);}
@@ -62,7 +62,7 @@ async function refreshRoom(){
  id?db.from("payment_reports").select("*").eq("room_id",room.id).eq("round_id",id).order("created_at",{ascending:false}):Promise.resolve({data:[]}),
  id?db.from("bankruptcy_requests").select("*").eq("room_id",room.id).eq("round_id",id).order("requested_at",{ascending:false}):Promise.resolve({data:[]})
  ];
- var res=await Promise.all(jobs),bad=res.find(function(x){return x.error;});if(bad){toast(bad.error.message);return;}
+ var res=await Promise.all(jobs);submissionMigrationReady=!res[4].error;if(res[4].error)res[4]={data:[]};var bad=res.find(function(x){return x.error;});if(bad){toast(bad.error.message);return;}
  data={members:res[0].data||[],round:res[1].data,players:res[2].data||[],balances:res[3].data||[],submissions:res[4].data||[],obligations:res[5].data||[],reports:res[6].data||[],bankruptcies:res[7].data||[]};
  room.activeRound=data.round;renderRoom();
 }
@@ -92,6 +92,7 @@ frame.addEventListener("load",function(){if(room&&data&&data.round&&data.round.s
 window.addEventListener("message",async function(e){
  if(e.origin!==location.origin||e.source!==frame.contentWindow||!e.data||e.data.type!=="mahjong-room-calculation-submit")return;
  if(!room||!data||!data.round||data.round.status!=="active"){toast("Buka Room dengan ronde aktif terlebih dahulu.");return;}
+ if(!submissionMigrationReady){toast("Fitur kirim hasil menunggu migration Supabase diterapkan.");return;}
  if(sending)return;sending=true;
  try{
   var input=e.data.snapshot,players=input.players.map(function(p){var rp=data.players.find(function(x){return Number(x.seat_no)===Number(p.seat_no);});return Object.assign({},p,{round_player_id:rp&&rp.id});});
