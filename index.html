@@ -51,7 +51,7 @@ async function loadRoom(id){
  channel.subscribe();if(poll)clearInterval(poll);poll=setInterval(refreshRoom,12000);$("room-calculator-slot").classList.remove("hidden");$("room-calculator-slot").appendChild(frame);
 }
 async function refreshRoom(){
- if(!room)return;var id=room.active_round_id;
+ if(!room)return;var state=await db.from("rooms").select("status,active_round_id").eq("id",room.id).single();if(state.error){toast(state.error.message);return;}room.status=state.data.status;room.active_round_id=state.data.active_round_id;var id=room.active_round_id;
  var jobs=[
  db.from("room_members").select("*").eq("room_id",room.id).eq("member_status","active").order("seat_no"),
  id?db.from("rounds").select("*").eq("id",id).maybeSingle():Promise.resolve({data:null}),
