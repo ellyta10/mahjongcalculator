@@ -21,7 +21,7 @@ var user=null,authMode="login",room=null,member=null,data=null,channel=null,poll
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function money(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);}
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(function(){$("toast").classList.add("hidden");},3000);}
-function showTab(t){["calculator","room","history"].forEach(function(n){$(n+"-page").classList.toggle("hidden",n!==t);document.querySelector('[data-tab="'+n+'"]').classList.toggle("active",n===t);});if(t==="room"&&user)loadMemberships();if(t==="history"&&user)loadMemberships();if(t==="room"&&room){$("room-calculator-slot").classList.remove("hidden");$("room-calculator-slot").appendChild(frame);}else if(t==="calculator"){$("room-calculator-slot").classList.add("hidden");$("calculator-standalone").appendChild(frame);}}
+function showTab(t){["calculator","room","history"].forEach(function(n){$(n+"-page").classList.toggle("hidden",n!==t);document.querySelector('[data-tab="'+n+'"]').classList.toggle("active",n===t);});if(t==="room"&&user)loadMemberships();if(t==="history"&&user)loadMemberships();if(t==="room"&&room){$("room-calculator-slot").classList.remove("hidden");$("room-calculator-slot").appendChild(frame);}else{$("room-calculator-slot").classList.add("hidden");if(t==="calculator")$("calculator-standalone").appendChild(frame);}}
 document.querySelectorAll("[data-tab]").forEach(function(b){b.addEventListener("click",function(){showTab(b.dataset.tab);});});
 function setAuthMode(v){authMode=v;$("login-mode").className="btn "+(v==="login"?"primary":"secondary");$("signup-mode").className="btn "+(v==="signup"?"primary":"secondary");$("auth-submit").textContent=v==="login"?"Masuk":"Daftar akun";$("password").autocomplete=v==="login"?"current-password":"new-password";}
 $("login-mode").onclick=function(){setAuthMode("login");};$("signup-mode").onclick=function(){setAuthMode("signup");};
@@ -85,10 +85,10 @@ function renderRoom(){
  $("request-bankruptcy")?.addEventListener("click",requestBankruptcy);
  $("room-dashboard").querySelectorAll("[data-bankruptcy]").forEach(function(b){b.onclick=function(){reviewBankruptcy(b.dataset.bankruptcy,b.dataset.accept==="true");};});
  $("archive-round")?.addEventListener("click",archiveRound);
- if(!selectedRoundId&&r&&r.status==="active"&&players.length===4)sendCalculatorContext();
+ if(!selectedRoundId&&r&&r.status==="active"&&players.length===4)sendCalculatorContext();else frame.contentWindow?.postMessage({type:"mahjong-room-calculator-lock"},location.origin);
 }
 var lastCalculatorContextKey='';function sendCalculatorContext(force){if(!data||data.players.length!==4)return;var rate=1000;var key=data.round.id+"|"+rate+"|"+data.players.map(function(p){return p.id+":"+p.starting_balance;}).join("|");if(!force&&key===lastCalculatorContextKey)return;lastCalculatorContextKey=key;frame.contentWindow?.postMessage({type:"mahjong-room-calculator-context",context:{chip_rate:rate,players:data.players.map(function(p){return {seat_no:p.seat_no,round_player_id:p.id,display_name:p.display_name,starting_balance:p.starting_balance};})}},location.origin);}
-frame.addEventListener("load",function(){if(room&&!selectedRoundId&&data&&data.round&&data.round.status==="active")sendCalculatorContext(true);});
+frame.addEventListener("load",function(){if(room&&!selectedRoundId&&data&&data.round&&data.round.status==="active")sendCalculatorContext(true);else frame.contentWindow?.postMessage({type:"mahjong-room-calculator-lock"},location.origin);});
 window.addEventListener("message",async function(e){
  if(e.origin!==location.origin||e.source!==frame.contentWindow||!e.data||e.data.type!=="mahjong-room-calculation-submit")return;
  if(!room||selectedRoundId||!data||!data.round||data.round.status!=="active"){toast("Buka Room dengan ronde aktif terlebih dahulu.");return;}
