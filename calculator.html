@@ -2152,6 +2152,8 @@
    document.getElementById("view-recap")?.classList.remove("hidden");
    document.querySelector('button[aria-label="Atur nilai rate chip"]')?.classList.remove("hidden");
    document.getElementById("btn-reset-all-names-chips")?.classList.remove("hidden");
+   document.getElementById("target-mode-starting")?.classList.remove("hidden");
+   document.getElementById("target-mode-hand")?.classList.remove("hidden");
    document.querySelectorAll("#chip-keypad-grid button").forEach(function(b){b.disabled=false;});
    seats.forEach(function(seat){var b=document.getElementById("seat-"+seat);if(b)b.disabled=false;});
    return;
@@ -2163,6 +2165,7 @@
   document.querySelectorAll("#chip-keypad-grid button").forEach(function(b){b.disabled=mode==="locked"||(mode==="setup"&&!roomContext.is_host);});
   document.getElementById("target-mode-starting")?.classList.add("hidden");
   document.getElementById("target-mode-hand")?.classList.add("hidden");
+  document.getElementById("mark-hand-zero")?.classList.add("hidden");
   document.getElementById("room-exchange-rate").textContent="1 chip = "+rupiah(rate);
   seats.forEach(function(seat){
    var p=roomPlayer(seatNo[seat]);
@@ -2171,7 +2174,7 @@
    if(p){if(name)name.textContent=p.display_name;if(status)status.textContent=(mode==="setup"?"Modal ":"Saldo ")+Number(mode==="setup"?(appState.startingChips[seat]?calculateSeatStartingTotal(seat):0):p.balance_chips||0).toLocaleString("id-ID")+" chip";}
    else{if(name)name.textContent="Menunggu";if(status)status.textContent="Belum bergabung";}
    var button=document.getElementById("seat-"+seat);
-   if(button)button.disabled=mode==="active"&&(!p||Number(p.seat_no)===Number(roomContext.own_seat_no)||roomSending);
+   if(button)button.disabled=mode==="locked"||(mode==="active"&&(!p||Number(p.seat_no)===Number(roomContext.own_seat_no)||roomSending));
   });
   var title=document.getElementById("room-exchange-title"),instruction=document.getElementById("room-exchange-instruction");
   var amount=document.getElementById("room-exchange-amount"),label=document.getElementById("room-exchange-amount-label");
@@ -2209,6 +2212,7 @@
    instruction.textContent="Host sedang menyiapkan modal awal atau permainan sudah ditutup.";
    amount.textContent="—";clear.classList.add("hidden");save.classList.add("hidden");
    ownBalance.textContent="";
+   document.getElementById("copy-starting-all-bar")?.classList.add("hidden");
   }
   var handTitle=document.getElementById("hand-tray-title");if(handTitle)handTitle.textContent=mode==="active"?"Nominal transfer:":"Modal chip:";
   var startLabel=document.querySelector("#card-block-starting span");if(startLabel&&mode==="active")startLabel.textContent="Saldo tersedia:";
@@ -2253,6 +2257,7 @@
   if(!roomContext||roomContext.mode!=="setup"||!roomContext.is_host)return;
   var starting_chips=seats.map(function(seat){return {seat_no:seatNo[seat],starting_chips:calculateSeatStartingTotal(seat)};});
   if(starting_chips.length!==4){roomToast("Lengkapi modal empat posisi.");return;}
+  document.getElementById("room-save-starting").disabled=true;
   notifyParent({type:"mahjong-room-starting-balances-submit",starting_chips:starting_chips});
  });
  window.addEventListener("message",function(e){
@@ -2281,6 +2286,7 @@
    renderRoomUI();return;
   }
   if(msg.type==="mahjong-room-starting-balances-result"){
+   document.getElementById("room-save-starting").disabled=roomContext&&roomContext.players.length!==4;
    if(msg.ok){roomToast(msg.message||"Modal tersimpan.");}
    else roomToast(msg.message||"Gagal menyimpan modal.");
   }
