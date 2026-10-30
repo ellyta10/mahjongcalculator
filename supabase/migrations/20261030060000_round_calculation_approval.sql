@@ -182,7 +182,6 @@ declare
   v_user uuid := auth.uid();
   v_role text;
   v_winners smallint[];
-  v_obligations jsonb;
 begin
   if v_user is null or p_approve is null then raise exception 'Login and decision required.' using errcode = '22023'; end if;
   select * into v_sub from public.round_calculation_submissions where id = p_submission_id for update;
@@ -203,25 +202,7 @@ begin
     where (p->>'net_rupiah')::numeric > 0;
 
     if coalesce(cardinality(v_winners),0) > 0 then
-      select coalesce(jsonb_agg(jsonb_build_object(
-        'payer_seat', o.payer_seat,
-        'winner_seat', o.winner_seat,
-        'amount_due', o.amount_due::numeric + coalesce(existing.amount_due,0)::numeric
-      ) order by o.payer_seat,o.winner_seat),'[]'::jsonb)
-      into v_obligations
-      from jsonb_to_recordset(v_sub.snapshot->'obligations') as o(
-        payer_seat smallint,winner_seat smallint,amount_due bigint
-      )
-      join public.round_players payer
-        on payer.room_id=v_sub.room_id and payer.round_id=v_sub.round_id and payer.seat_no=o.payer_seat
-      join public.round_players winner
-        on winner.room_id=v_sub.room_id and winner.round_id=v_sub.round_id and winner.seat_no=o.winner_seat
-      left join public.payment_obligations existing
-        on existing.room_id=v_sub.room_id and existing.round_id=v_sub.round_id
-       and existing.payer_round_player_id=payer.id
-       and existing.winner_round_player_id=winner.id;
-
-      perform public.declare_winners_and_obligations(v_sub.round_id,v_winners,v_obligations);
+      perform public.declare_winners_and_obligations(v_sub.round_id,v_winners,v_sub.snapshot->'obligations');
     end if;
   end if;
 
