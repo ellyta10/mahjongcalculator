@@ -99,6 +99,9 @@ begin
       on rp.id = p.round_player_id and rp.room_id = v_round.room_id
      and rp.round_id = v_round.id and rp.seat_no = p.seat_no
     where rp.id is null or p.seat_no not between 1 and 4
+       or p.display_name is null or p.display_name is distinct from rp.display_name
+       or p.starting_points is null or p.final_points is null
+       or p.net_points is null or p.net_rupiah is null
        or p.starting_points::numeric * v_rate <> rp.starting_balance
        or p.net_points <> p.final_points - p.starting_points
        or p.net_rupiah::numeric <> p.net_points::numeric * v_rate
