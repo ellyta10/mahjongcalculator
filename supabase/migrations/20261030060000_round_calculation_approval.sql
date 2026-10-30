@@ -57,13 +57,14 @@ declare
 begin
   if v_user is null then raise exception 'Login required.' using errcode = '28000'; end if;
   if p_client_request_id is null
-     or jsonb_typeof(p_snapshot) <> 'object'
-     or jsonb_typeof(p_snapshot->'players') <> 'array'
-     or jsonb_typeof(p_snapshot->'obligations') <> 'array' then
+     or p_snapshot is null
+     or jsonb_typeof(p_snapshot) is distinct from 'object'
+     or jsonb_typeof(p_snapshot->'players') is distinct from 'array'
+     or jsonb_typeof(p_snapshot->'obligations') is distinct from 'array' then
     raise exception 'Invalid calculation snapshot.' using errcode = '22023';
   end if;
   v_rate := (p_snapshot->>'chip_rate')::numeric;
-  if v_rate <= 0 or v_rate <> trunc(v_rate) then
+  if v_rate is null or v_rate <= 0 or v_rate <> trunc(v_rate) then
     raise exception 'Chip rate must be a positive integer.' using errcode = '22023';
   end if;
 
@@ -132,7 +133,10 @@ begin
       seat_no smallint, round_player_id uuid, display_name text,
       starting_points bigint, final_points bigint, net_points bigint, net_rupiah bigint
     ) on winner.seat_no = o.winner_seat
-    where o.amount_due <= 0 or o.payer_seat = o.winner_seat
+    where o.payer_seat is null or o.winner_seat is null or o.amount_due is null
+       or payer.seat_no is null or winner.seat_no is null
+       or payer.net_rupiah is null or winner.net_rupiah is null
+       or o.amount_due <= 0 or o.payer_seat = o.winner_seat
        or payer.net_rupiah >= 0 or winner.net_rupiah <= 0
   ) then raise exception 'Invalid payment allocation.' using errcode = '23514'; end if;
 
@@ -196,15 +200,6 @@ begin
       into v_winners
     from jsonb_array_elements(v_sub.snapshot->'players') p
     where (p->>'net_rupiah')::numeric > 0;
-
-    update public.round_players rp
-    set final_balance = rp.starting_balance + p.net_rupiah,
-        net_result = p.net_rupiah
-    from jsonb_to_recordset(v_sub.snapshot->'players') as p(
-      seat_no smallint, round_player_id uuid, display_name text,
-      starting_points bigint, final_points bigint, net_points bigint, net_rupiah bigint
-    )
-    where rp.id = p.round_player_id and rp.room_id = v_sub.room_id and rp.round_id = v_sub.round_id;
 
     if coalesce(cardinality(v_winners),0) > 0 then
       perform public.declare_winners_and_obligations(v_sub.round_id,v_winners,v_sub.snapshot->'obligations');
