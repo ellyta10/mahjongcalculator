@@ -2109,7 +2109,10 @@
         }
 
 
+        let roomCalculationContext = null;
+
         function sendResultToRoom() {
+            if (!roomCalculationContext) { showToast('Buka kalkulator dari Room yang sedang aktif', 'Room belum terhubung'); return; }
             const seats = ['East','South','West','North'];
             const complete = seats.every(seat => Object.keys(appState.startingChips[seat] || {}).length > 0 && hasFinalHand(seat));
             if (!complete) { showToast('Lengkapi modal dan On Hand 4 pemain', 'Belum lengkap'); return; }
@@ -2140,6 +2143,9 @@
 
         function applyRoomCalculatorContext(context) {
             if (!context || !Array.isArray(context.players) || context.players.length !== 4) return;
+            roomCalculationContext = context;
+            const sendButton = document.getElementById('btn-send-room-result');
+            if (sendButton) sendButton.classList.remove('hidden');
             const seats = ['East','South','West','North'];
             appState.chipRate = Number(context.chip_rate) || 1000;
             seats.forEach((seat, index) => {
@@ -2155,6 +2161,11 @@
             saveState();
             renderUI();
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendButton = document.getElementById('btn-send-room-result');
+            if (sendButton && window.parent === window) sendButton.classList.add('hidden');
+        });
 
         window.addEventListener('message', function(event) {
             if (event.origin !== window.location.origin || event.source !== window.parent) return;
