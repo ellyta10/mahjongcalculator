@@ -2113,6 +2113,9 @@
 
         function sendResultToRoom() {
             if (!roomCalculationContext) { showToast('Buka kalkulator dari Room yang sedang aktif', 'Room belum terhubung'); return; }
+            appState.chipRate = Number(roomCalculationContext.chip_rate) || Number(appState.chipRate) || 1000;
+            saveState();
+            renderUI();
             const seats = ['East','South','West','North'];
             const complete = seats.every(seat => Object.keys(appState.startingChips[seat] || {}).length > 0 && hasFinalHand(seat));
             if (!complete) { showToast('Lengkapi modal dan On Hand 4 pemain', 'Belum lengkap'); return; }
