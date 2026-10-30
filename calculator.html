@@ -2133,7 +2133,7 @@
 
 
         function roomChipMap(amount, rate) {
-            let remaining = Math.max(0, Math.round(Number(amount) / Number(rate)));
+            let remaining = Math.max(0, Math.floor(Number(amount) / Number(rate)));
             if (remaining === 0) return { 1: 0 };
             const denominations = ['10K','5K','2K','1K',500,200,100,50,25,20,10,5,2,1];
             const result = {};
