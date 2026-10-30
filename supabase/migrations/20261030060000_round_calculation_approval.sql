@@ -183,7 +183,7 @@ begin
   select * into v_sub from public.round_calculation_submissions where id = p_submission_id for update;
   if not found then raise exception 'Submission not found.' using errcode = '22023'; end if;
 
-  perform 1 from public.rounds where id = v_sub.round_id and room_id = v_sub.room_id and status = 'active' for update;
+  perform 1 from public.rounds r join public.rooms rm on rm.id = r.room_id where r.id = v_sub.round_id and r.room_id = v_sub.room_id and r.status = 'active' and rm.active_round_id = r.id and rm.status = 'open' for update of r, rm;
   if not found then raise exception 'Round is no longer active.' using errcode = '55000'; end if;
 
   select role into v_role from public.room_members
