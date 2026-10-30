@@ -87,7 +87,7 @@ function renderRoom(){
  if(r&&r.status==="active"&&players.length===4)sendCalculatorContext();
 }
 function gcd(a,b){return b?gcd(b,a%b):Math.abs(a);}
-function sendCalculatorContext(){if(!data||data.players.length!==4)return;var balances=data.players.map(function(p){return Number(p.starting_balance)||0;}),rate=balances.filter(function(x){return x>0;}).reduce(function(a,b){return a===0?b:gcd(a,b):a;},0);if(rate<1)rate=1000;frame.contentWindow?.postMessage({type:"mahjong-room-calculator-context",context:{chip_rate:rate,players:data.players.map(function(p){return {seat_no:p.seat_no,round_player_id:p.id,display_name:p.display_name,starting_balance:p.starting_balance};})}},location.origin);}
+function sendCalculatorContext(){if(!data||data.players.length!==4)return;var balances=data.players.map(function(p){return Number(p.starting_balance)||0;}),rate=balances.filter(function(x){return x>0;}).reduce(function(a,b){return a===0?b:gcd(a,b);},0);if(rate<1)rate=1000;frame.contentWindow?.postMessage({type:"mahjong-room-calculator-context",context:{chip_rate:rate,players:data.players.map(function(p){return {seat_no:p.seat_no,round_player_id:p.id,display_name:p.display_name,starting_balance:p.starting_balance};})}},location.origin);}
 frame.addEventListener("load",function(){if(room&&data&&data.round&&data.round.status==="active")sendCalculatorContext();});
 window.addEventListener("message",async function(e){
  if(e.origin!==location.origin||e.source!==frame.contentWindow||!e.data||e.data.type!=="mahjong-room-calculation-submit")return;
