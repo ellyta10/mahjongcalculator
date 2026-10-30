@@ -16,8 +16,7 @@
     <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px">
       <button class="panel stack" type="button" data-room-action="create" style="color:inherit;text-align:center"><span style="font-size:25px">＋</span><b>Buat Room</b><span class="muted small">Saya menjadi Dealer</span></button>
       <button class="panel stack" type="button" data-room-action="join" style="color:inherit;text-align:center"><span style="font-size:25px">♟</span><b>Gabung Room</b><span class="muted small">Saya menjadi Player</span></button>
-      <button class="panel stack" type="button" data-room-action="viewer" style="color:inherit;text-align:center"><span style="font-size:25px">◉</span><b>Viewer</b><span class="muted small">Hanya menonton</span></button>
-    </div>
+        </div>
   </div>
   <div id="membership-list" class="panel stack"><b>Room Saya</b><p class="muted small">Memuat daftar Room…</p></div>
 </div>
@@ -26,18 +25,15 @@
   <form id="create-form" class="panel stack">
     <div><b>Buat Room Baru</b><p class="muted small">Kode Room dibuat otomatis setelah Room berhasil dibuat.</p></div>
     <input id="room-name" class="field" maxlength="80" required placeholder="Nama Room">
-    <input id="dealer-name" class="field" maxlength="40" required placeholder="Nama Dealer">
-    <label class="small muted">Mode Room
-      <select id="dealer-mode" class="field"><option value="dealer_only">Dealer Only · Dealer tidak ikut bermain</option><option value="dealer_player">Dealer + Player · Dealer ikut bermain</option></select>
+    <input id="dealer-name" class="field" maxlength="40" required placeholder="Nama Host">
+    <label class="small muted">Posisi Host
+      <select id="dealer-seat" class="field"><option value="1">East · Timur</option><option value="2">South · Selatan</option><option value="3">West · Barat</option><option value="4">North · Utara</option></select>
     </label>
-    <label id="dealer-seat-wrap" class="small muted hidden">Pilih posisi Dealer
-      <select id="dealer-seat" class="field"><option value="1">Seat 1 · Timur</option><option value="2">Seat 2 · Selatan</option><option value="3">Seat 3 · Barat</option><option value="4">Seat 4 · Utara</option></select>
+    <label class="small muted">Rate chip (nilai 1 chip dalam Rupiah)
+      <input id="chip-rate" class="field" type="number" min="1" max="1000000000" step="1" value="1000" required inputmode="numeric" placeholder="Contoh: 1000">
+      <span class="muted small">Rate ini dikunci untuk seluruh permainan di Room ini.</span>
     </label>
-    <label class="small muted">Modal awal setiap pemain (Rp)
-      <input id="starting-balance" class="field" type="number" min="0" step="1000" value="0" required inputmode="numeric" placeholder="Contoh: 1000000">
-      <span class="muted small">Nominal ini menjadi modal default untuk empat kursi dan harus kelipatan Rp1.000.</span>
-    </label>
-    <input id="dealer-pin" class="field" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="PIN Dealer (6 angka)">
+    <input id="dealer-pin" class="field" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="PIN Host (6 angka)">
     <button class="btn primary">Buat Room & Dapatkan Kode</button>
   </form>
   <form id="join-form" class="panel stack">
@@ -82,7 +78,6 @@ function showRoomHome(){$("room-home").classList.remove("hidden");$("room-forms"
 function showRoomForm(which){$("room-home").classList.add("hidden");$("room-forms").classList.remove("hidden");$("room-dashboard").classList.add("hidden");$("create-form").classList.toggle("hidden",which!=="create");$("join-form").classList.toggle("hidden",which!=="join");$("viewer-form").classList.toggle("hidden",which!=="viewer");$("dealer-reclaim-form").classList.toggle("hidden",which!=="create");}
 document.querySelectorAll("[data-room-action]").forEach(function(b){b.addEventListener("click",function(){showRoomForm(b.dataset.roomAction);});});
 $("back-room-home").addEventListener("click",showRoomHome);
-$("dealer-mode").addEventListener("change",function(){$("dealer-seat-wrap").classList.toggle("hidden",this.value!=="dealer_player");});
 
 var guestStarting=false;
 async function ensureGuestSession(){
@@ -109,19 +104,19 @@ async function loadMemberships(){
  $("history-list").querySelectorAll("[data-history-room]").forEach(function(b){b.onclick=function(){loadRoom(b.dataset.historyRoom,b.dataset.historyRound);showTab("room");};});
  if(!room&&rooms.length)await loadRoom(rooms[0].room.id);
 }
-$("create-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var r=await db.rpc("create_room",{p_name:$("room-name").value.trim(),p_dealer_display_name:$("dealer-name").value.trim(),p_dealer_pin:$("dealer-pin").value,p_dealer_mode:$("dealer-mode").value,p_dealer_seat_no:$("dealer-mode").value==="dealer_player"?Number($("dealer-seat").value):null,p_starting_balance:Number($("starting-balance").value)});if(r.error)throw r.error;var v=r.data||{},id=v.room_id||v.id;if(!id)throw new Error("Respons pembuatan Room tidak memuat ID Room.");if(v.invite_code)localStorage.setItem("mahjong-room-invite-"+id,v.invite_code);toast("Room berhasil dibuat.");await loadRoom(id);await loadMemberships();}catch(err){toast(err.message);}finally{b.disabled=false;}};
+$("create-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var rate=Number($("chip-rate").value);if(!Number.isSafeInteger(rate)||rate<=0||rate>1000000000)throw new Error("Rate chip harus berupa angka positif.");var r=await db.rpc("create_chip_exchange_room",{p_name:$("room-name").value.trim(),p_host_display_name:$("dealer-name").value.trim(),p_host_pin:$("dealer-pin").value,p_host_seat_no:Number($("dealer-seat").value),p_chip_rate:rate});if(r.error)throw r.error;var v=r.data||{},id=v.room_id||v.id;if(!id)throw new Error("Respons pembuatan Room tidak memuat ID Room.");if(v.invite_code)localStorage.setItem("mahjong-room-invite-"+id,v.invite_code);toast("Room berhasil dibuat. Rate chip dikunci.");await loadRoom(id);await loadMemberships();}catch(err){toast(err.message);}finally{b.disabled=false;}};
 $("join-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var role="player",code=$("invite-code").value.trim().toUpperCase();var r=await db.rpc("join_room_by_code",{p_invite_code:code,p_display_name:$("join-name").value.trim(),p_role:"player",p_seat_no:Number($("join-seat").value)});if(r.error)throw r.error;localStorage.setItem("mahjong-room-invite-"+r.data,code);$("invite-code").value="";toast("Berhasil masuk atau bergabung ke Room.");await loadRoom(r.data);await loadMemberships();}catch(err){toast(err.message);}finally{b.disabled=false;}};
 $("dealer-reclaim-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var code=$("dealer-reclaim-code").value.trim().toUpperCase();var r=await db.rpc("reclaim_dealer_room",{p_invite_code:code,p_dealer_display_name:$("dealer-reclaim-name").value.trim(),p_dealer_pin:$("dealer-reclaim-pin").value});if(r.error)throw r.error;if(!r.data)throw new Error("Kode Room, nama Dealer, atau PIN salah. Setelah 5 percobaan gagal, akses terkunci 15 menit.");localStorage.setItem("mahjong-room-invite-"+r.data,code);toast("Akses Dealer berhasil dipulihkan.");await loadMemberships();await loadRoom(r.data);}catch(err){toast(err.message);}finally{b.disabled=false;}};
 $("viewer-form").onsubmit=async function(e){e.preventDefault();var b=e.submitter;b.disabled=true;try{var code=$("viewer-code").value.trim().toUpperCase();var alias=localStorage.getItem("mahjong-viewer-name-"+code);if(!alias){alias="Viewer-"+Math.random().toString(36).slice(2,7).toUpperCase();localStorage.setItem("mahjong-viewer-name-"+code,alias);}var r=await db.rpc("join_room_by_code",{p_invite_code:code,p_display_name:alias,p_role:"viewer",p_seat_no:null});if(r.error)throw r.error;localStorage.setItem("mahjong-room-invite-"+r.data,code);toast("Berhasil masuk sebagai Viewer.");await loadMemberships();await loadRoom(r.data);}catch(err){toast(err.message);}finally{b.disabled=false;}};
 async function loadRoom(id,roundId){
- if(!user||!id)return;selectedRoundId=roundId||null;var rr=await db.from("rooms").select("id,name,status,active_round_id,created_at").eq("id",id).single();if(rr.error){toast(rr.error.message);return;}
+ if(!user||!id)return;selectedRoundId=roundId||null;var rr=await db.from("rooms").select("id,name,status,active_round_id,created_at,chip_rate").eq("id",id).single();if(rr.error){toast(rr.error.message);return;}
  var mm=await db.from("room_members").select("*").eq("room_id",id).eq("user_id",user.id).eq("member_status","active").maybeSingle();if(mm.error||!mm.data){toast("Akun bukan anggota aktif Room ini.");return;}
  room=rr.data;member=mm.data;$("room-home").classList.add("hidden");$("room-forms").classList.add("hidden");$("room-dashboard").classList.remove("hidden");await refreshRoom();if(channel)db.removeChannel(channel);channel=db.channel("room-"+id);
  ["room_members","rounds","round_players","round_winners","payment_obligations","payment_reports","bankruptcy_requests","chip_ledger","chip_transfer_requests"].concat(submissionMigrationReady?["round_calculation_submissions"]:[]).forEach(function(table){channel.on("postgres_changes",{event:"*",schema:"public",table:table,filter:"room_id=eq."+id},function(){refreshRoom();});});
  channel.subscribe();if(poll)clearInterval(poll);poll=setInterval(refreshRoom,12000);$("room-calculator-slot").classList.remove("hidden");$("room-calculator-slot").appendChild(frame);
 }
 async function refreshRoom(){
- if(!room)return;var state=await db.from("rooms").select("status,active_round_id").eq("id",room.id).single();if(state.error){toast(state.error.message);return;}room.status=state.data.status;room.active_round_id=state.data.active_round_id;var id=selectedRoundId||room.active_round_id;
+ if(!room)return;var state=await db.from("rooms").select("status,active_round_id,chip_rate").eq("id",room.id).single();if(state.error){toast(state.error.message);return;}room.status=state.data.status;room.active_round_id=state.data.active_round_id;room.chip_rate=state.data.chip_rate;var id=selectedRoundId||room.active_round_id;
  var jobs=[
  db.from("room_members").select("*").eq("room_id",room.id).eq("member_status","active").order("seat_no"),
  id?db.from("rounds").select("*").eq("id",id).maybeSingle():Promise.resolve({data:null}),
@@ -199,5 +194,104 @@ async function requestChipTransfer(e){e.preventDefault();var to=$("chip-transfer
 async function cancelChipTransfer(id){var reason=prompt("Alasan pembatalan transfer (wajib diisi):");if(reason===null)return;if(!reason.trim()){toast("Alasan pembatalan wajib diisi.");return;}if(!confirm("Batalkan transfer ini dengan membuat transaksi reversal? Riwayat asli tetap tersimpan."))return;try{var r=await db.rpc("cancel_chip_transfer",{p_ledger_entry_id:id,p_reason:reason.trim()});if(r.error)throw r.error;toast("Transfer dibatalkan melalui reversal. Riwayat asli tetap tersimpan.");await refreshRoom();}catch(err){toast(err.message);}}
 async function closeRound(){if(!confirm("Tutup ronde ini? Pastikan semua transfer, pembayaran, dan reset bangkrut sudah diproses."))return;try{var r=await db.rpc("close_round",{p_round_id:data.round.id});if(r.error)throw r.error;toast("Ronde ditutup. Dealer dapat mengarsipkan ronde untuk membuat ronde berikutnya.");await refreshRoom();}catch(err){toast(err.message);}}
 async function archiveRound(){if(!confirm("Arsipkan ronde ini dan mulai ronde berikutnya?"))return;try{var r=await db.rpc("archive_round_and_start_next",{p_round_id:data.round.id});if(r.error)throw r.error;selectedRoundId=null;toast("Ronde diarsipkan. Ronde berikutnya dibuat.");await refreshRoom();}catch(e){toast(e.message);}}
+
+/* Live Chip Exchange: room-scoped balances, locked room rate, and calculator bridge. */
+var exchangeSending=false;
+function seatLabel(no){return ({1:"East",2:"South",3:"West",4:"North"})[Number(no)]||"Seat";}
+function roomPlayerBalance(player){
+ var row=data&&data.balances.find(function(x){return x.round_player_id===player.id;});
+ return Number(row?row.current_balance:player.starting_balance)||0;
+}
+function sendCalculatorContext(force){
+ if(!room||!data||!data.round||selectedRoundId){frame.contentWindow?.postMessage({type:"mahjong-room-calculator-lock"},location.origin);return;}
+ var rate=Number(room.chip_rate)||1000;
+ var own=data.players.find(function(p){return p.user_id===user.id;});
+ var mode=data.round.status==="setup"?(member.role==="dealer"?"setup":"locked"):data.round.status==="active"?"active":"locked";
+ if(mode==="active"&&!own)mode="locked";
+ var context={
+  mode:mode,room_id:room.id,round_id:data.round.id,chip_rate:rate,
+  own_user_id:user.id,own_seat_no:own?Number(own.seat_no):Number(member.seat_no)||null,
+  is_host:member.role==="dealer",
+  players:data.players.map(function(p){var balance=roomPlayerBalance(p);return {
+   seat_no:Number(p.seat_no),user_id:p.user_id,display_name:p.display_name,
+   balance_rupiah:balance,balance_chips:Math.floor(balance/rate)
+  };})
+ };
+ frame.contentWindow?.postMessage({type:"mahjong-room-calculator-context",context:context},location.origin);
+}
+renderRoom=function(){
+ if(!data||!room)return;
+ var r=data.round,rate=Number(room.chip_rate)||1000;
+ var invite=localStorage.getItem("mahjong-room-invite-"+room.id)||"";
+ var own=data.players.find(function(p){return p.user_id===user.id;});
+ var seats=[1,2,3,4].map(function(no){
+  var p=data.players.find(function(x){return Number(x.seat_no)===no;});
+  var balance=p?roomPlayerBalance(p):0;
+  var chips=p?Math.floor(balance/rate):0;
+  return '<div class="seat"><div class="row"><span class="tag">'+seatLabel(no)+'</span><span class="muted small">'+(p?'Terisi':'Menunggu')+'</span></div><b style="display:block;margin-top:8px">'+esc(p?p.display_name:'Menunggu pemain')+'</b><div class="muted small" style="margin-top:5px">'+(p?chips.toLocaleString('id-ID')+' chips':'')+'</div></div>';
+ }).join("");
+ var history=data.ledger.filter(function(x){return x.entry_type==="player_transfer"||x.entry_type==="transfer_reversal";}).map(function(t){
+  var from=data.players.find(function(p){return p.id===t.from_round_player_id;});
+  var to=data.players.find(function(p){return p.id===t.to_round_player_id;});
+  var amount=Number(t.amount||0)/rate;
+  return '<div class="item"><div class="row"><b>'+esc(from?from.display_name:'Pemain')+' → '+esc(to?to.display_name:'Pemain')+'</b><span class="tag">Terkirim</span></div><div class="row"><b>'+amount.toLocaleString('id-ID')+' chips</b><span class="muted small">'+new Date(t.created_at).toLocaleString('id-ID')+'</span></div></div>';
+ }).join("");
+ var setupNote=r&&r.status==="setup"?(data.players.length===4?
+  '<div class="item"><b>Atur modal chip awal</b><p class="muted small">Host gunakan kalkulator di bawah untuk mengisi modal chip keempat pemain. Rate sudah dikunci: 1 chip = '+money(rate)+'.</p></div>':
+  '<div class="item"><b>Menunggu pemain</b><p class="muted small">Room membutuhkan 4 pemain. Saat ini '+data.players.length+'/4 pemain sudah bergabung.</p></div>'):"";
+ var statusText=r?(r.status==="setup"?"Persiapan chip awal":r.status==="active"?"Live Chip Exchange":r.status):"Belum ada ronde";
+ $("room-dashboard").innerHTML=
+  '<div class="panel stack"><div class="row"><button id="back-to-room-home" class="btn secondary" type="button">← Room Saya</button><span class="tag">'+esc(statusText)+'</span></div>'+
+  '<div><div class="muted small">ROOM CHIP EXCHANGE</div><h2 style="margin:4px 0">'+esc(room.name)+'</h2><div class="muted small">'+esc(member.display_name)+' · '+(member.role==="dealer"?"Host":"Player")+' · '+seatLabel(member.seat_no)+'</div></div>'+
+  (invite?'<div class="item row"><span><small class="muted">Kode undangan</small><b style="display:block;letter-spacing:.12em">'+esc(invite)+'</b></span><button class="btn secondary" id="copy-invite">Salin</button></div>':"")+
+  '<div class="item row"><span class="muted small">Rate terkunci</span><b>1 chip = '+money(rate)+'</b></div>'+
+  '<div class="grid four">'+seats+'</div>'+setupNote+
+  '<div class="panel stack"><b>Riwayat Chip Exchange</b>'+(history||'<p class="muted small">Belum ada transfer chip.</p>')+'</div></div>';
+ $("copy-invite")?.addEventListener("click",function(){navigator.clipboard.writeText(invite).then(function(){toast("Kode undangan disalin.");});});
+ $("back-to-room-home")?.addEventListener("click",showRoomHome);
+ $("room-calculator-slot").classList.remove("hidden");
+ $("room-calculator-slot").appendChild(frame);
+ sendCalculatorContext(true);
+};
+window.addEventListener("message",async function(e){
+ if(e.origin!==location.origin||e.source!==frame.contentWindow||!e.data)return;
+ var msg=e.data;
+ if(msg.type==="mahjong-room-chip-transfer"){
+  if(exchangeSending)return;
+  exchangeSending=true;
+  try{
+   if(!room||!data||!data.round||data.round.status!=="active"||selectedRoundId)throw new Error("Room belum dalam mode Live Chip Exchange.");
+   var sender=data.players.find(function(p){return p.user_id===user.id;});
+   var receiver=data.players.find(function(p){return Number(p.seat_no)===Number(msg.to_seat_no);});
+   var amount=Number(msg.amount_chips);
+   if(!sender||!receiver||receiver.user_id===sender.user_id)throw new Error("Pilih posisi lawan yang valid.");
+   if(!Number.isSafeInteger(amount)||amount<=0)throw new Error("Nominal chip tidak valid.");
+   var result=await db.rpc("send_chip_transfer",{p_round_id:data.round.id,p_to_user_id:receiver.user_id,p_amount_chips:amount,p_client_request_id:msg.request_id||crypto.randomUUID()});
+   if(result.error)throw result.error;
+   frame.contentWindow.postMessage({type:"mahjong-room-transfer-result",request_id:msg.request_id,ok:true,message:"Chip berhasil dikirim ke "+receiver.display_name+"."},location.origin);
+   await refreshRoom();
+  }catch(err){
+   frame.contentWindow.postMessage({type:"mahjong-room-transfer-result",request_id:msg.request_id,ok:false,message:err.message||"Transfer gagal."},location.origin);
+  }finally{exchangeSending=false;}
+ }
+ if(msg.type==="mahjong-room-starting-balances-submit"){
+  try{
+   if(!room||!data||!data.round||data.round.status!=="setup"||member.role!=="dealer"||selectedRoundId)throw new Error("Hanya Host yang dapat mengatur modal chip saat persiapan.");
+   if(data.players.length!==4)throw new Error("Pastikan keempat pemain sudah bergabung.");
+   var rate=Number(room.chip_rate);
+   var entries=(msg.starting_chips||[]).map(function(x){var chips=Number(x.starting_chips);var rupiah=chips*rate;return {seat_no:Number(x.seat_no),starting_balance:rupiah};});
+   if(entries.length!==4||entries.some(function(x){return !Number.isSafeInteger(x.seat_no)||x.seat_no<1||x.seat_no>4||!Number.isSafeInteger(x.starting_balance)||x.starting_balance<0;}))throw new Error("Modal chip awal tidak valid.");
+   var saved=await db.rpc("set_starting_balances",{p_round_id:data.round.id,p_balances:entries});
+   if(saved.error)throw saved.error;
+   var started=await db.rpc("start_round",{p_round_id:data.round.id});
+   if(started.error)throw started.error;
+   frame.contentWindow.postMessage({type:"mahjong-room-starting-balances-result",ok:true,message:"Modal chip tersimpan. Live Chip Exchange dimulai."},location.origin);
+   await refreshRoom();
+  }catch(err){
+   frame.contentWindow.postMessage({type:"mahjong-room-starting-balances-result",ok:false,message:err.message||"Gagal menyimpan modal."},location.origin);
+  }
+ }
+});
+
 })();
 </script></body></html>
