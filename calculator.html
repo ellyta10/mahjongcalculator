@@ -2125,6 +2125,44 @@
             showToast('Hasil dikirim ke Dealer','Menunggu konfirmasi');
         }
 
+
+        function roomChipMap(amount, rate) {
+            let remaining = Math.max(0, Math.round(Number(amount) / Number(rate)));
+            const denominations = ['10K','5K','2K','1K',500,200,100,50,25,20,10,5,2,1];
+            const result = {};
+            denominations.forEach(key => {
+                const value = getNumericChipValue(key);
+                const qty = Math.floor(remaining / value);
+                if (qty > 0) { result[key] = qty; remaining -= qty * value; }
+            });
+            return result;
+        }
+
+        function applyRoomCalculatorContext(context) {
+            if (!context || !Array.isArray(context.players) || context.players.length !== 4) return;
+            const seats = ['East','South','West','North'];
+            appState.chipRate = Number(context.chip_rate) || 1000;
+            seats.forEach((seat, index) => {
+                const player = context.players.find(item => Number(item.seat_no) === index + 1);
+                if (!player) return;
+                appState.playerNames[seat] = player.display_name || ('Pemain ' + (index + 1));
+                appState.startingChips[seat] = roomChipMap(player.starting_balance || 0, appState.chipRate);
+                appState.players[seat] = {};
+                appState.handFinalized[seat] = false;
+            });
+            appState.activeSeat = 'East';
+            appState.targetMode = 'starting';
+            saveState();
+            renderUI();
+        }
+
+        window.addEventListener('message', function(event) {
+            if (event.origin !== window.location.origin || event.source !== window.parent) return;
+            if (event.data && event.data.type === 'mahjong-room-calculator-context') {
+                applyRoomCalculatorContext(event.data.context);
+            }
+        });
+
         function saveState() {
             try {
                 localStorage.setItem('mahjong_exchange_state_v7', JSON.stringify(appState));
