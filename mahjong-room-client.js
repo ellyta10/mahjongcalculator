@@ -119,8 +119,14 @@
       subscriptions.delete(key);
     }
     const channel = client.channel("mahjong-room-" + key);
+    // rooms is keyed by id; child tables are filtered by room_id.
+    channel.on("postgres_changes", {
+      event: "*", schema: "public", table: "rooms", filter: "id=eq." + key
+    }, function (payload) {
+      if (typeof onChange === "function") onChange({ table: "rooms", payload });
+    });
     [
-      "rooms", "room_members", "rounds", "round_players", "round_winners",
+      "room_members", "rounds", "round_players", "round_winners",
       "payment_obligations", "payment_reports", "chip_ledger",
       "bankruptcy_requests", "round_calculation_submissions",
       "chip_transfer_requests", "audit_log"
@@ -131,7 +137,12 @@
         if (typeof onChange === "function") onChange({ table, payload });
       });
     });
-    channel.subscribe();
+    channel.subscribe(function (status, error) {
+      if (typeof onChange === "function") onChange({
+        table: "__subscription__",
+        payload: { status: status, error: error || null }
+      });
+    });
     subscriptions.set(key, channel);
     return function unsubscribe() {
       if (subscriptions.get(key) === channel) subscriptions.delete(key);
