@@ -2300,6 +2300,8 @@
  });
  if(typeof window.loadSavedState==="function")window.loadSavedState();
  if(typeof window.renderUI==="function")window.renderUI();
+ // Handshake: request Room context after this iframe has registered its message listeners.
+ notifyParent({type:"mahjong-room-calculator-ready"});
 })();
 </script>
 
