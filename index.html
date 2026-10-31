@@ -16,7 +16,8 @@
     <p class="muted" style="margin:0">Buat Room baru atau bergabung dengan tiga pemain lain untuk bertukar chip secara langsung.</p>
     <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px">
       <button class="panel stack" type="button" data-room-action="create" style="color:inherit;text-align:center"><span style="font-size:25px">＋</span><b>Buat Room</b><span class="muted small">Saya menjadi Dealer</span></button>
-      <button class="panel stack" type="button" data-room-action="join" style="color:inherit;text-align:center"><span style="font-size:25px">♟</span><b>Gabung Room</b><span class="muted small">Saya menjadi Player</span></button>
+      <button class="panel stack" type="button" data-room-action="join" style="color:inherit;text-align:center"><span style="font-size:25px">🎮</span><b>Gabung Room</b><span class="muted small">Saya menjadi Player</span></button>
+      <button class="panel stack" type="button" data-room-action="viewer" style="color:inherit;text-align:center"><span style="font-size:25px">👁️</span><b>Viewer</b><span class="muted small">Menonton room aktif</span></button>
         </div>
   </div>
   <div id="membership-list" class="panel stack"><b>Room Saya</b><p class="muted small">Memuat daftar Room…</p></div>
@@ -248,7 +249,7 @@ renderRoom=function(){
  var statusText=r?(r.status==="setup"?"Persiapan chip awal":r.status==="active"?"Live Chip Exchange":r.status):"Belum ada ronde";
  $("room-dashboard").innerHTML=
   '<div class="panel stack"><div class="row"><button id="back-to-room-home" class="btn secondary" type="button">← Room Saya</button><span class="tag">'+esc(statusText)+'</span></div>'+
-  '<div><div class="muted small">ROOM CHIP EXCHANGE</div><h2 style="margin:4px 0">'+esc(room.name)+'</h2><div class="muted small">'+esc(member.display_name)+' · '+(member.role==="dealer"?"Host":"Player")+' · '+seatLabel(member.seat_no)+'</div></div>'+
+  '<div><div class="muted small">ROOM CHIP EXCHANGE</div><h2 style="margin:4px 0">'+esc(room.name)+'</h2><div class="muted small">'+esc(member.display_name)+' · '+(member.role==="dealer"?"Host":member.role==="viewer"?"Viewer":"Player")+' · '+seatLabel(member.seat_no)+'</div></div>'+
   (invite?'<div class="item row"><span><small class="muted">Kode undangan</small><b style="display:block;letter-spacing:.12em">'+esc(invite)+'</b></span><button class="btn secondary" id="copy-invite">Salin</button></div>':"")+
   '<div class="item row"><span class="muted small">Rate terkunci</span><b>1 chip = '+money(rate)+'</b></div>'+
   '<div class="grid four">'+seats+'</div>'+setupNote+
