@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-[#101310] text-[#F0F0E7]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Mahjong Exchange Pro - Hand Chip Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        casino: {
+                            bg: '#F5F7F2',
+                            surface: '#FFFFFF',
+                            card: '#FFFFFF',
+                            elevated: '#EDF2EA',
+                            input: '#F7F9F5',
+                            border: '#DCE5DC',
+                            text: '#26332C',
+                            muted: '#657267',
+                            subtle: '#7B877D',
+                            jade: '#527560',
+                            jadeHover: '#42634F',
+                            brass: '#B08D4B',
+                            green: '#2F8052',
+                            red: '#B84E49'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #101310;
+            color: #F0F0E7;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #welcome-screen.welcome-exit {
+            z-index: 40;
+            pointer-events: none;
+            animation: welcomeFadeOut .46s ease forwards;
+        }
+        #welcome-screen.welcome-exit > div {
+            animation: welcomeCardOut .46s cubic-bezier(.2,.75,.25,1) forwards;
+        }
+        @keyframes welcomeFadeOut { to { opacity: 0; } }
+        @keyframes welcomeCardOut {
+            to { opacity: 0; transform: translateY(-18px) scale(.96); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #welcome-screen.welcome-exit, #welcome-screen.welcome-exit > div { animation-duration: .01ms; }
+        }
+
+        .font-mono-tabular {
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* TACTILE CASINO CHIP STYLING */
+        .chip-key {
+            position: relative;
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.1s ease;
+            user-select: none;
+            touch-action: manipulation;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .chip-key:active {
+            transform: scale(0.93) translateY(1px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Inner Ceramic Inlay Disc */
+        .chip-inlay {
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Clean Panel Cards */
+        .panel-card {
+            background-color: #1D221D;
+            border: 1px solid #343B32;
+        }
+
+        /* 3D Stack Item animation */
+        .chip-stack-item {
+            transition: transform 0.12s ease;
+        }
+        .chip-stack-item:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #343B32; border-radius: 99px; }
+
+        @keyframes toastPop {
+            0% { opacity: 0; transform: translateY(-8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-toast { animation: toastPop 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Animated result emoticons */
+        @keyframes winParty {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            20% { transform: scale(1.25) rotate(-12deg); }
+            40% { transform: scale(1.35) rotate(12deg); }
+            60% { transform: scale(1.25) rotate(-8deg); }
+            80% { transform: scale(1.3) rotate(8deg); }
+        }
+        .animate-win {
+            animation: winParty 2.4s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-15px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(45px) rotate(360deg); opacity: 0; }
+        }
+        .confetti-1 { position: absolute; left: 5%; top: 5%; font-size: 16px; animation: confettiFall 1.1s ease-in-out infinite; }
+        .confetti-2 { position: absolute; right: 10%; top: 15%; font-size: 16px; animation: confettiFall 1.3s ease-in-out infinite 0.3s; }
+        .confetti-3 { position: absolute; left: 25%; top: 0%; font-size: 14px; animation: confettiFall 0.9s ease-in-out infinite 0.15s; }
+
+        @keyframes tearDrop {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            70% { transform: translateY(26px) scale(0.7); opacity: 0.8; }
+            100% { transform: translateY(38px) scale(0.3); opacity: 0; }
+        }
+        .tear-1 {
+            position: absolute;
+            left: 26%;
+            top: 45%;
+            font-size: 18px;
+            animation: tearDrop 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .tear-2 {
+            position: absolute;
+            right: 26%;
+            top: 45%;
+            font-size: 18px;
+            animation: tearDrop 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.45s;
+        }
+        @keyframes cryShake {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            20% { transform: translateY(-4px) rotate(-4deg); }
+            40% { transform: translateY(4px) rotate(4deg); }
+            60% { transform: translateY(-3px) rotate(-2deg); }
+            80% { transform: translateY(3px) rotate(2deg); }
+        }
+        .animate-cry {
+            animation: cryShake 0.45s ease-in-out infinite;
+            position: relative;
+            display: inline-block;
+        }
+
+        @keyframes drawMouth {
+            0%, 80%, 100% { transform: scaleY(1); }
+            90% { transform: scaleY(0.1); }
+        }
+        .animate-draw {
+            animation: drawMouth 3s ease-in-out infinite;
+            display: inline-block;
+        }
+    </style>
+
+    <!-- Sage & Ivory redesign layer -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+      :root {
+        color-scheme: light;
+        --page: #F5F7F2;
+        --surface: #FFFFFF;
+        --card: #FFFFFF;
+        --elevated: #EDF2EA;
+        --input: #F7F9F5;
+        --line: #DCE5DC;
+        --ink: #26332C;
+        --muted: #657267;
+        --subtle: #657267;
+        --sage: #527560;
+        --sage-hover: #42634F;
+        --gold: #80632E;
+        --positive: #2F8052;
+        --negative: #B84E49;
+      }
+
+      html, body {
+        min-height: 100%;
+        background: var(--page) !important;
+        color: var(--ink) !important;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      body { line-height: 1.45; }
+      button, input { font: inherit; }
+
+      /* Consistent numeric typography: IBM Plex Mono for aligned, readable values. */
+      .font-mono-tabular,
+      #seat-status-East, #seat-status-South, #seat-status-West, #seat-status-North,
+      #display-starting-pts, #display-starting-rp,
+      #display-hand-pts, #display-hand-rp,
+      #net-pts-val, #net-rp-val,
+      #tab-recap-table-balance, #recap-tab-rate-val,
+      #toast-chip-badge {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+        font-variant-numeric: tabular-nums lining-nums;
+        font-feature-settings: 'tnum' 1, 'lnum' 1;
+      }
+      #recap-tab-players-list .font-mono-tabular {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+      }
+      button { -webkit-tap-highlight-color: transparent; }
+      button:focus-visible, input:focus-visible {
+        outline: 3px solid rgba(82,117,96,.24) !important;
+        outline-offset: 2px;
+      }
+
+      /* Convert the former dark palette into the selected Sage & Ivory system. */
+      [class*="bg-[#101310]"] { background-color: var(--page) !important; }
+      [class*="bg-[#171B17]"] { background-color: var(--surface) !important; }
+      [class*="bg-[#1D221D]"] { background-color: var(--card) !important; }
+      [class*="bg-[#242A23]"] { background-color: var(--elevated) !important; }
+      [class*="bg-[#121612]"] { background-color: var(--input) !important; }
+      [class*="border-[#343B32]"] { border-color: var(--line) !important; }
+      [class*="border-[#343B32]/"] { border-color: var(--line) !important; }
+      [class*="text-[#F0F0E7]"] { color: var(--ink) !important; }
+      [class*="text-[#A5AA9E]"] { color: var(--muted) !important; }
+      [class*="text-[#777F73]"] { color: var(--subtle) !important; }
+      [class*="text-[#7B877D]"] { color: var(--muted) !important; }
+      [class*="text-[#64866B]"] { color: var(--sage) !important; }
+      [class*="text-[#789B7E]"] { color: var(--sage) !important; }
+      [class*="text-[#C3A66A]"] { color: var(--gold) !important; }
+      [class*="text-[#78B58A]"] { color: var(--positive) !important; }
+      [class*="text-[#D77F79]"] { color: var(--negative) !important; }
+      [class*="bg-[#64866B]"]:not(body) { background-color: var(--sage) !important; color: #FFFFFF !important; }
+      [class*="bg-[#789B7E]"] { background-color: var(--sage-hover) !important; color: #FFFFFF !important; }
+      [class*="bg-[#C3A66A]"] { background-color: #EDE3CD !important; color: #5A4725 !important; }
+      [class*="hover:bg-[#242A23]"]:hover { background-color: var(--elevated) !important; }
+      [class*="hover:bg-[#171B17]"]:hover { background-color: #E8EEE6 !important; }
+      [class*="hover:text-[#F0F0E7]"]:hover { color: var(--ink) !important; }
+      [class*="selection:bg-[#64866B]"] ::selection { background: #D5E4D7; color: var(--ink); }
+
+      header {
+        background: rgba(255,255,255,.94) !important;
+        border-color: var(--line) !important;
+        box-shadow: 0 2px 12px rgba(38,51,44,.035);
+        backdrop-filter: blur(14px);
+      }
+      .panel-card {
+        background: var(--card) !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 5px 18px rgba(38,51,44,.045);
+      }
+      input[type="text"], input[type="number"] {
+        color: var(--ink) !important;
+        background: var(--input) !important;
+        border-color: var(--line) !important;
+        border-radius: 10px;
+        min-height: 42px;
+      }
+      input::placeholder { color: #657267 !important; opacity: 1; }
+      footer { border-color: var(--line) !important; color: var(--subtle) !important; }
+      .chip-key {
+        box-shadow: 0 5px 12px rgba(35,49,40,.13) !important;
+        border: 1px solid rgba(38,51,44,.10);
+        background: #FFFFFF;
+      }
+      .chip-key:active { box-shadow: 0 2px 5px rgba(35,49,40,.12) !important; }
+      .chip-inlay { box-shadow: inset 0 1px 3px rgba(0,0,0,.18); }
+      #chips-breakdown-container {
+        background: #F7F9F5 !important;
+        border-color: var(--line) !important;
+      }
+      #chip-keypad-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      #chip-keypad-grid button { max-width: 100px; width: 100%; }
+      #tab-btn-calc, #tab-btn-recap, .seat-btn { min-height: 46px; }
+      header button { width: 44px !important; height: 44px !important; }
+      #filter-all, #filter-low, #filter-mid, #filter-high { min-height: 36px; padding: 6px 9px !important; font-size: 11px !important; }
+      #chip-keypad-grid button { min-height: 64px; }
+      .recap-status-visual { font-size: 2.5rem !important; }
+      .recap-face { width: 82px; height: 82px; display: block; overflow: visible; }
+      .face-mouth { transform-box: fill-box; transform-origin: center; }
+      #welcome-screen { background: radial-gradient(ellipse at 50% 36%, #FFFFFF 0%, #F5F7F2 62%, #EAF0E8 100%); }
+      #welcome-start:focus-visible { outline: 3px solid rgba(82,117,96,.35); outline-offset: 4px; }
+      /* Keep result feedback alive, but tone down the motion for a calmer recap. */
+      .animate-win { animation-duration: 2.4s; }
+      .animate-cry { animation-duration: 1.2s; }
+      .confetti-1, .confetti-2, .confetti-3, .tear-1, .tear-2 { animation-iteration-count: 2; }
+      #tab-btn-calc, #tab-btn-recap { border-radius: 11px; }
+      #modal-settings > div, #modal-confirm > div {
+        background: var(--surface) !important;
+        border-color: var(--line) !important;
+        box-shadow: 0 24px 70px rgba(38,51,44,.18);
+      }
+      #modal-settings [class*="bg-[#07100d]"] {
+        background: var(--input) !important;
+        border-color: var(--line) !important;
+      }
+      #modal-settings [class*="text-amber-300"] { color: var(--gold) !important; }
+      #modal-settings [class*="border-emerald-500"] { border-color: var(--line) !important; }
+      ::-webkit-scrollbar-thumb { background: #CAD5CA; }
+      @media (min-width: 640px) {
+        #chip-keypad-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 14px; }
+        #chip-keypad-grid button { max-width: 90px; }
+        #player-stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        main { padding-top: 20px !important; }
+      }
+      @media (max-width: 380px) {
+        #chip-keypad-grid { gap: 6px; }
+        #chip-keypad-grid button { max-width: 84px; }
+        #filter-low, #filter-mid, #filter-high, #filter-all { padding-left: 7px !important; padding-right: 7px !important; font-size: 11px !important; }
+        #net-emoji-container { font-size: 3.5rem !important; }
+      }
+      /* Keep small labels readable on mobile; preserve larger utility labels as authored. */
+      [class*="text-[9px]"], [class*="text-[10px]"] { font-size: 12px !important; line-height: 1.35 !important; }
+      #filter-all, #filter-low, #filter-mid, #filter-high { font-size: 12px !important; }
+      #btn-toggle-view { min-height: 44px; }
+      button:disabled { opacity: .48; cursor: not-allowed; }
+      body { background: var(--page) !important; color: var(--ink) !important; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+      }
+    </style>
+
+</head>
+<body class="h-full flex flex-col antialiased selection:bg-[#64866B] selection:text-[#101310]">
+
+    <audio id="welcome-chorus" preload="auto" playsinline src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//OkwAAAAAAAAAAAAEluZm8AAAAPAAAASQAAU0AABgoNDREUGBgbHyIiJikpLDAzMzc6Pj5BRUVITE9PU1ZZWV1gZGRna2tucnV1eXyAgIOGhoqNkZGUmJubn6KipqmsrLCzt7e6vsHBxcjIzM/T09bZ3d3g5OTn6+7u8vX5+fz/AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQECAAAAAAAAFNAfTIS2wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//OkxAAx9DlUD0F4ACpJT/IY/yGNwAAjpT3ve/xe9/6U96U99+lPSnvv01l5TN9wGCJKrGTV49/rNKf/////5vvF77/+d/P/ze+4CvZ7/5vf3ve+HisZJVYyahv4+8f+/o8eRIaGMlX+4CsZJUMZKv48jAySqxk1d/H3/f/5hv4+Fe/tTV38eAh7Ph5VTmmo2wnZlucBWPNX3733h48eVeUzfcB4qFOQhCG9RtwrgGQOgmYAEAcEqW8y0gJIOBMgpAbhwN6Hoer4+NtiGKBrG+EfFjPR/xYWACAIqGrMf0FIDBgwIRLY/5hQKSafxCG/nq2KaQIBBCwSLc//+wSkligagqLY8EVTf//9ddqRv5iDQgwtIpaaBv///6dDkPw7//OkxEtOJDoIAZrIAPL/TthpDNTB0na////9/KWX3YhFHne0tq9qVyTTUoh/////+vBWCNyR1H7pPh8s8BD2WAYYvekMoiIAgV7///8////ehkjX3bfsHCOq691lbbqWA5YMFTjUqKDBECYwIgIStDCW0Lk////P//////oX7QcWJAhZMtuzdnbO3XSIaZLLcTWqvuVlgFMImMHAi0Tb07XlGAsLC1hRED////////+H9////i6giwjqKYF3E+HfpocQDoPsnLMKWPwXwR3Dg2aorvmIgVtF6wSOiEFyRGOwEBJortOBSRbIYLABY0aVITibA2A1IF3jdMVQ4mCInEVAa34jKpcIBv0vaN2i+yi6SKpygJaXAXUEMXETNYHO//OkxCVEnDocAZh4AB1tjCqwEIhZcjvN6C65jCxq8sDgOY1tsjd2/DxiMFaew3sJ6xIlhZZIt0ur2XL9cSsrGciVcmZXKKHHnZIzpWO8qNdp0bxfmWOpDLL4/W7vzpUztM3hsb+jC4Q38c1z02rT+UZyHQ3oxWI99uC1p14ts72SHWFdYfsESWJq92Q5zfNY6Ue1s1cI2K0v1HO3w3ndnaf27ZU0OLIxZYfaApJq4gOHixPrT6K4HFCLYoC2wkcOtKvR+qI7yWm8EFHgqS/Le2NLRl2wtR/LTDCRSRY4RKl0tpdgO0ZcVkVqfgQYbeyzMksetmEY3pIolYpEMlu9HaZvOV2JQKFIBsBgLKKjp0FmAAcxgVaCwMSUuZQUYMOV//OkxCVGRDZWX5nIAJXfQzEQo+kleaBkaXWuCDH1VOPFQxGXrd9tWlKlY7BcrvPs8keglY8QfTVSD79bGMwyuuy977QiX8b9msrqUFI89ulzlERgai5LZ9/vwlc1qgn5fEJHT0MplrkQ41yDZ944aYI63PwxvzcgqtrjvK/zH9SpoCg7HY5jCl2SZ2IpjLItTc1a+xQVLVNfo9fay5elWVan1KXLaC0/U3QXZLPU8vpK77wZfsSiV5XOd5jhWy7vVLvtrC9rv653LHDCvS1M5fhfllfPUovSaRw5OU1WM01Pjc+xnld5X33VizXyvTleho3s73X2fw3+GPMf/PDtjtkJQagcESaJsY9aPVEXEI13KPLycl5YYBJIOF00TWUk//OkxB9BNDo4U9p4AAkQG/MtXVwCQqVIQDRLBYUFtSSTaz8YDILmTRaLAhDYccNkRjijnilgoM4Dvgp1FHgl3GEgWxga8RtYaLKhhdzMUNkbWOGyNzDCcFAvq5x14zDRza3r5Wqt5DgKW+nOAq+xubZHVjktMCy5xornp5CiybVjPdQP5tWz42miLBjUc6TUkfzP9bxSJh6z1lvR/GdNzE4YtAj6pPC147Ix0h2jR7Q6sUR54MC086/Cu5WZqM7qdWq6DZ5Bjvk65SvIDAyO4Lt1Dfbn3HpGTj9g1tcv8SNkFgY1AzHGlMyVcmZjZmLD2k7uMKY5SEB3RCbZylwsGuABBEYUIlGkAg6cMJAz5TLXkQXXiqoUI0bU/YGVjYxT//OkxC1ERDowyNYYHLLFpN1co2YLZIIzg6h2OBKLI8ACD4TncOQLkgrF1IZkJ5MDMSjsxMCmJA9gWKqZYTRcDWE5HgsnTq0ukpKT0bhF0tJF5LMCmZICpa/CsVLHnonzzojw9YPXl5MWHx8sQ8iq1VDPzxES2D+nHzBaVllepVpCWnSJmComWMVX7K6FcTbqSwT3zwnKzxpZc9hgiMVWLDs2ZfTWpQ7MD9pJtWi4thLh66scJj5USk4hnRzGPDkcYkL9Qjs/Sk2hgZwcoaLbVYjAroRbTGislno7mC8eBrMQODuUBwJ6Chk8RicfE2NkaxyCFkUhHhGCqLNdQIfydK1RMx0HGsKpEMpxsaBUx7EZVJ/DeUHonMjUtFaGxY/J//OkxC86LDowANvYNMIyvX16g4OkGj01YOzmBsxUoZZOXDI7YU+VE9bKUZqdOocC6OFN6Trn+OURmcbDKQ8VsI3VxVbdSndX6tpVdDfheuaVPONtrGGWjhy6OCTxuuIo3qPuleONPjKyNPeD6Xr6qp35qeq36KnVkOs76+0esy8gOWtEaRtlRvXVEDZ2kQoVbyWE7RqTP1Ts3THmNlJYy+mQPJVXVU3b68SpSTXmSW8KIKD0Ir9yqIxwJ5KfZQeO4Wi2ZOM/BTHYYRAREYtFTycRebMFml/F0MZceCpQ6cpa/jVxk0AR+Pyqcn5u2rYBDGZhkIlZJYhIZbDZ9o5g2Iiw+GoilG2VDJMHqWqLypcgtZjpqiJHORPZCUJ01oRD//OkxFk6DDowAN4SPOmyxBo60rlI7g9+TbZk0ibMrExMKiCRq0SIVCpH+52Ko4IJlYyxA9YXJ6JFjy6JeUmUxSllQjheCBSlTbOIoLRSVTitVqIFFEJ6EWwmYMtRWXpgPdWFo3MswONlnvKlB9IUUQtnRSqMIU74ZWFbEExMmsSmjICkQZbRkL1hkaR4vBChgND6bLzxIjNLGCcNKgLCBkCNC6qzMm+aRIGLMRWs05+3AipOhJ9hJHUniEtLp8TTQ9HUDIAoKGQ5AaUnRmShrE48Ki5AWGzKi48oFyQHKVctuJjTKYSXD+OSSIfIyAD7PHCMgEIrWFjhpckcIhHOP1FSrLGGdbYlMuT2yugTYQJHcgUpieBiDi5swotb7N4b//OkxIM63DIsANsSnckQoGGz6BhQ4ooREYq1I8n1jqIyzzR19lyTO3mpLDcgyqTC6sPVGDQMNkckJcVECMQMtssNIeeRHbw0UUUQLjbBdu5kRlGOIE0IeHBkaCrRIXOsPNMo0xSXJOLlSYnQ3aGS4xQjbcFElQUMTM93rWASVjdR4pY+1BJIq9MrnK8odeH33qxuUSmiwgLiChAs6FHgXODHVEOBNlk3qBH0sPIrax5VKmZlT3FPqSC9hNjJLK3Vwt+6jq9XDp8p2ZihOLvrTxpi+7E27gz5mw3x39H797D3W0N/qV7ChQmTb+S872kLs93LLfPtnvu0SzPEtCmblwxsjFTuKjXURVODcxwrP+2x8QYuZIO6v5I22L1rEmiw//OkxKo57DY0wVh4AOB41dXiQWvUTcCBJeNGjw/EvXeo+n0kk+KV3VVPob3EfLi1sDbtWQ5Nwv26ZuxP3B9WJTENxfta9aeMwxnyMkjgkBxu5bAImnGECNFsdAcMLsVRGATSFUKKas/T6TcpUuUWUFnSL4ojqVRWUOS2URhkJfMvOmelGlmoOx5KhUswkq1ykShaHeYape2VwXoj0GtzWkw9GV0XqEREkEEYZUI2jgMCOsje5YiTa/VdN+PPX3FYBgdrS2TCdv5MhegwxtSACKpbFldwS4j/v80hCc7i73jceMvujzTNygtIN2HySrZaxxDN532qXFg3cR6eGVM3THawypliY4KGzlmaGoXM6rju8W8WHUPS6OjDW603q8Wv//OkxNVgRDocAZzAADW4+yCWvwtFdmQ8iVO82JcjVlTIHvetFIpf6gbuOaygFkNYVDREpCaZmizjsQwKFdh7zuExIDMABQAezBcVd0whSu1qoT2lS9CSiexwLuRkRSXIuVuT+0MNppQCwp14DfuVrqi0vgiH2NwLIOAP4mcBkNJ0lS/REAhEW9MYUewYpSlFlmwCAOAVVn0IkRAuckLMKkhS5F2vM9hfJBC4kAx1wW/bpNUyxUxYJgYaAzff3dsiIBwMWqDwEoQRJoL7uU15a6QKq0gaGxehoKeG2FIyE4P2cySWIaK6KNEi5lWWwo24HEEDGiIgLaAMBAgRgcg5gDIKoQAcASgfAsoMoZBbh6gik+FK9TquLwAeiSDuEsc6//OkxGdXZDow9Zt4ADARsE4FWMccx4AaIiiiWwjYAIA9h3GOGCZREDwEmbyckELysivCND0GIK+bggqKZXxdSjEYLshZ+kgFKEGBwHwLmWp2LZNTiJ2SBOqZ00oSlxuieEoQ8egoyhE4coh/E1DSFuIIkXMlh9G8aSUJ6Togq7GaSZOwUIVaK2yE9jP0gdaJUpcGV+W84iDnCIQnBmmOTxHI5QnoQ9oJEwtKWVyfFsCQiQDjDVGaapPReE6uebKk4Bex5E/RRdjTc2NSvUUgluRBq+KdbJBPQ7UcwHKtoWf5+Xi7aFHIm0RHDqwhRfVoW1EELHCJ8hpYjDXRgpzaMWzOo7pEViwXCw1BuRopNAKIdygEJDIoBkIMIKcPKw1N//OkxBxExDJaXZrIAXNIaMlIiLzsMmzjHkzJdlOUi5n6KiB6fANBjUOWZQ+z+L3bQynjIHOcsQByF3IDvu28cXi96XlujcOA0RvMDQErykMefmYgCU0NWGKUIMeWjqJyM15STcoldyVyeG60/OXqad5RSqlyjGe61q1eu8v9lcv3nh9SmrVJZuXU9W5T36Sjvar8znKfDKPzMruVbH3scK2VWhleWdHlKrNezU/m7P3r2F7eGH/nh+f55Y5au7yzp8bVfLDdPPdx+TxTtFQZWc7e7erlft3Xe63jhh3f4W/yr/YtZcrWMqvO5Ws7Ot3Nb5vX552LV6xUoZe/8qlkvhiikw/GbCERmle3S63XWSyMpLz8YXcKgIcGYgSfcXNQ//OkxBxEzC6lv5nIAiWOD9VfkxkALHnwKKB7grUgSBAQXHa29CJwPrN9JkC5x74xwoIGQ0SoJg6ViooXOMzcotTkzYfEsL7coBgexNF+15uM5biPonst2o7UDTkvyfhu8okj8Rec1PRruMxljSdnr89ulnbNnHsfmpucl+Utdyiv0kzEcPqdl/Yze+9cs1pqXRepVjNPWkE9lXq/21Wt4Z3blNGYxRWpZuxH7c9+HLFTGU1MbVDnclXbl3mXP/uWNBUsz9rH+f3XMbN+9brfnY7l/6s7yt3LFn8rFyW2ZvGQamtfjnz8NX6evjXy5T5zlPnM95r+a7nyxrWvs2eYRypjhcRVPwMEPSu+cckZDDch0aQTARExQqNCVDanI5pi//OkxBs0HDp0DduAADNjyWPmo+X/JggwgKmldphrwAgcFCMxoLBtkHOHphnwVRiEEHYfHMDFInEkSIkqMuQpEiupaZuXxyyDlkvk2TZjQUp0dSEySr6SdloKSrTdToINW9Wt1KdbsgyCFCi2nQzd9WmvdntuylPQdWtN1IKZNnN/1fXW1BCnr06mWmmsvl90GXZdkENBtbqLiCLstaDImZPpLOE4yZufQQdFZFy+UiCGhfJwqGY55PmBFDUnzSZveZpqDgvQShMWCZjspmk1eaPSBkWzAZYGMxkChSAQMYXOBlVKGUk6Ah0DQA+bS7MyZAEjqCIceDLkmEKAbwhZrSsbixlyFetKiLLXlh1fa2nUrN/Fnfdh171FKpIsAZRy//OkxF05BCJwCuZS0cqPP0sfg3e+UsvZV/4ZD+k1/6y4XdU+Bs4+RIbEbSCee7g1FonRlkJOujb8ZYv6h833X+b/5/3leE6hj6+/N7Hj5Vt568PUtn182V5hdEaSy11PNgtHE9i3SdTSU6tbOb1TbaDEDKJGPFScnaIFbxIss2nXRY02qSCgYaYqicjFbzRqmnwVFoAIPAUOA4NGX6WfDdhq82mC7eZiHiEUvKogKEwYuXRvcxA4RSR2G+LACIDCYsAaWpfhXixzDYJMtA1eiq0/YTXTCanArFXluq3qWyyA1hXAVWbE4TOtQDAqTznuLRSi04OB9cq4cRSjEzpqxgoNY6LKIt8VreEgXaxWIuXaOuJNuHskPA5UchZ1zi8p//OkxIw4RCZsAuITexUOvMXNVzCfzqmbzdVM06WMbmuK1tNNb6s2aJHjUmJQr5NjYynkK1PGI09GRLa+yFpCSk1mTAeHw8QiE688nIs0UejRROvMj6kTwpiyaGFHyWM9R0IKgUYBAYYWA0Z4JmcIiUYxCYadmgYui0YKAMKAcFg6IgZMC0KAgHJKrhIgDftHwxZA5rCE1er18MXgvIgYWo68sZ0DABgWUQK+zzPG7t2OS2Ixl/4zFYtesw632eNJGqUWaRbETQPKiXHOOuMTplv2j265mLJsXs0Ca/9RsIlN1Nlam5xmuR7VCR3fD/rv/vzwf8yMvnqQ+MU8F9svdbKxfeWdH1md8xlKQmZ0k1zl9xnf+2pFnagipDOOFknl//OkxL45hDJkAOmTeU2nNgu2DMz4OjJEuSLAtAUiflBQHi4BUYTBEwTKSRCo4hJCqNHCSQkAgYQBU0GjzSWUP1n409hTwQHMFuciJiBgNEZooUmJwKa2CUGpHl3IFFgmLLClCoWCjCRwLONwhZTfUbvBch2/eN+Ygu1rE3AkB4QAqk4HIMhuAmTMmkE9Rzl4mD+eIR4vNWRzJ/F98+fyjbCWx7i5RFVM7AXLIltGHDii0+Sa/HeB1IcHFliY0d5DxFZm6x36y3263D1LtLdtRhZsL5xSEzLaV5QeJ00BgXHa/qPUeuGCm2Yer6+/G84nuZ+sWHFT3b7RyZWMa1Tl3Ykp3PHcDNclkyPaFFpLEHRyrVFx0piWKbo3DBGlqqOM//OkxOtAlDpgAOZYmJNEca6B0SmEMORKVq43FCLTAmHDy/4mqkxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhCVskaSjUXKDkl3iEkMfAjPX43ohMJBUBgcCGCiRiQqYe1muoplIetZy051hWQhAGzJ6EBgNDU5DIxlPplkJeJxAuAiQO4k/E8qRoiuIfl9G7eT8EgYGEKz5o1sBU2AEKHQyMqiq2BSRzFDJ0CZtFkRM2UeiGlsQtyQ2ucG4ggcMaEolJgLTOkH7Y0pSR0yVajYGXkIDq2ySWOaiSr4pMpM43EUqG+yDJ57TSO1RrOWaGz8lyHs6H6NUUX3h3jInXc0320oo3BydtRydnqm8RcMfrkkDVra//OkxNc6rDKEXtpNTBOwuVizlC0CJwF64Gz0xxA1EWVVgDgUrIYFRhjepHu2iZcLgINZoGKm+HomUFhoIgwYZaB3admODOYXnhvBQGESSYgEmgkZ1TIawaGnoJlpyTJRo7yayRHhzBoJMYaOmgwJt5mKORwjSB2Zbi5gKQmRkplaabaHteSseVWYBC5gRINEO2UBYAXmsRCeHAkAzdTFG2O5/Rp5V7lJv0c7HTIMc/4OhfdtRg4bdaR3k8YcaZcpubs+1FnJ3E9MrtWazkz0z8/M5nTm9N9m/Q3aEhD61Y+6tj3CW0S1JKKIeFs3LMdCsTS6qEihfAQlVQEdYiVwvbFHaFY7f7um2wMV23Vg1uuS3Oq28+tKMXLBYXGCxfTl//OkxP9FlDpwAubYtOcHiOBUpbgaM8t6U6T3QTiBSvuy2uEj1UxBTUVVVVUkGytlMEjkKBM42HjFJZXCZcBBnQ0o3qZGFgkPCwwiEgoNDkTPMSkIxaEldGwLptZq5Jq/qaePmcSxnCKZUGllwIKAkSM+mQMICo2ZKSIxJgqYmKiZvA4ZeNGJgSwrNFDx0SCAMEAqzUNI2sCyqGU2BYBUEkrfv4+KRamlPD+t1IcJAYP1cu8pOnmMp6Gf9SkL+Jzda3FBS8MdbRTN89voPn+mu/+dWdmZmZmZnJpt57fXv4xCuEhAMzCphA4+rRL3j9x5gxI8ZYDgQy24dvHEnHnCdcFCk65eeW+m5rnJT9u05M29z+3OzstfKTudzt4YKfbo//OkxPRBzB6ACubYu9if/OvjTzX3lrdn6sX6ldi8+KoqTEFNRTMuMTCESbqYIlgFjOrAjLBww4AMRoDKxRMx1zX0QHH6ixgSQbvAgqUdAAAg4WmMGBVCzMH82i4PKCRY+Fg4GKBY6YQMaGwY4UKqFU00GFmFCiE6cgWNCw4ChuFQgCIJzAQa0hHNFJiEgb2UwLAzEXxeiCl+DAdQRgq7KaWT8BMSUBLbp1y2X3KVxX7jduvdxSqMCx7Z2yOw4IBnq91QhMzv585B/4zak5HSfiz5vP7M0mf/ciOGVxmuYO9PlhSPTcFyawU6r1jywyQlK47Mj5uTVCSY5ZagPs8nyhIRqGyfFSTFQV1bjl8gbcy96xxW1+2fe2zkUbjltaRN//OkxPdCw8KEAt6Y99Ud+lJBSTFqJmmGqtgasBElT84OTEEAsCpGfGGEhiLORmZjIKCRcwUsNGBFEVDDBQYaUgQLjwSYcdrmL0GGQGgBhsgwAAEizGWDH/zLvhZwIiwjNl5jCqDt7DjPzXmwE/RyGhQyCDixiyQJBlsDFAFDRZxKnZVlhh1YDikWjT7NKSudtyF8MBgljq30sG3p5x+3/p3GQAsiVIxB/b723ouK5rzUPikSB4DgoZR3KLxWqGzBsi6566TmmjUtIhOMlkNpUlG551MYZpHFGIiMnEQujNHjoosic8igsCTDMyJWWtNkhKUuOc7Is2hjtV1FlplHwNTbMpRTdJKU8vz1qUapfIxl2fB+SYlfbidtE2WfsVmo//OkxP1EHCqIFN6SvS6qSBWFicwPyKoNSgt6yo1CkuUVnpwy0YIK89EBDJYCFQyZHhuaVgcjLnMvDAwfUzMEPDSu0wELHn0RBABOTCAIMGAYLjs5WNZg8qjcwWATLIpSHMPhUwkAgIPDKKrMhhwwUDAcMWVEQAYesgBBQwSO1EUUkTQwGq+a2iAxJsL0sykjorAunJVqyWGoRDiCZdFZTJSLO11sQayoKoYXjAQYcmdhb+xO67knxhuy7D3NlgGBZRnS1wwZJFYQtd7DFyXlEk+V52pP7Uad8uUowTbsSAsXaUJEz5PDuJm4JsKyWJCJQiRuHZLjkgdi2TFWWkWD+wxFarS66q6rkpx022jLx2nIMTxEcYkihF+JsW9I5qdz//OkxP9GRAKAAN8S3Yolu2xRZXZYLNF2CJLaRKojaheCkYV6MX+UTEFNRVVVVQHhadBNmUAlTaGhx4mFwxmR5tSQcRXcvkKEIdVIgBM2rPggMGDZQM1EYQoEMiZOhXNbrOJEMaKMgtHUpilQcdFYRgk4t9ApUOLOAu9iZceZEYIaNyNtopKaKhdEifHjAc1hdRdIYfbBpYUzLtjgk7TqvjsqVWx4IpzwsGzhdp65tkZXgRipMwQKnROuJWFl2D7Zy5DkFI1zxWz06dVST1mc2z8Vxg+vaurQ1ranFn2m+LRQooQk7S5VCUPljtahoQkhDFCdKmWYKHJhVxKYR1iNFSay5RTYtT8tR2gjnSh3zt7BAbNk5K26FHyoWoJPKDoy//OkxPJBZDKQFtPTSYExWKQ+GKCzRxaS2MK+77qjLHk1AgALInWYCZDHxhRTm2gsSgVtzAw9NpP4zaTUFnNGTegPIQk3UQHE0aUjR4JCgUMfBk14JiIpERJBAXOUioxnwSI5MiITUlYwQIMpWDd5o0cjMDDjbcQ2UPMFJkyTAB8wwtHFolDzBQkSLGdxesw5ymoU7PlGWdKC0qw65H8hcTcCN0UMvQoG79OoGSATc6B32FLTh9ay8mEjMLTta40yQDSmROGx+sX42i3o5ORFl9AplwZFGxmkwK1pguUHTe8mb2yu4W8wHFNsagQhSDjtChsrJNRrmYHFtVy5VqxBo1tGqOmZvfO0auGcUzcAhasX2lLKdwY3jYrnVWxkb2KA//OkxP9SDDp9VObe9M0dxZEJlkjybtmNmHun0/w+nzuPbc+b3TsVncaKm7Os4uQ06B8GMe4cFj/UCcLeeh3ltPhEk9TCQfw0W2MEsd9buER48ZmTciyqDCLQ7JkILph4MRvsd4YDABBcwTAI0/AsWYNBtkJgsFAkY5QCxgIApYOcy5Gc1DB0RguYZDYZRHeYAA8YDCmMDUayIGY2SqcMFYYAhWZPj0YdAoYbhyAQPEQQGYgNmG42gagw4Kw4diygGBq6ODoNu8NaeM+BSVVIjuuV3VsDAF3iZezcQgFSKbJPSlgVCUBaRrMqYMOBEKUq1lLPgt9WnDRJ4msKUl0gAybgrpe0IjnUUI7Qn3yvaUGgmFOKIG4Qg8h6jYnLBITQ//OkxMlcJDpsDO6fLOs/2VcxV0W5U0ZpX9nKJNLDVjZGZGZ6X9WtLCdqnjOaqV62kzsRR+pMup/trIyFvmjqyRSM7w3SAHoha2Px9lDwbT5Vs60oUNhxTDV6+2MClPtoRqHtDfHqfr5PoydnQ1mtFdQrwm9lcz/mY2RabkbGq/g6a1SdyFjhONuR5pKtC0fOnjnPlHoabpSHEj2A3VQT5EIUiGNbYlW8jrGU6/Z1DRDZ2jc0eoMNTKMigExSfDsZ9MSgIQBsQgQ24VDDBaDA6FA0VUsYnBrQU/Aa1TKo8NdPAFB0xyOzrpiMHicyIWTAw9OpywwE2T0P5BSPMvnkIIhgMHA4WAw0GXQuPFkwERTU4HASdVMXYGwjFvMAcGiC//OkxGtTbDpwAuZfMJQzNkjE3uepPmVtNITUS1RPAhMZdDKn52GCI1gSciVaBbLCwO7r7FzI1Fp1/ZlTBmYykpmiZA3YhDc/KbbewuzVmpUpDqdCkosq2pWqJNa0tNrK93WsNki+LHV7PuPmDD8+WCCra4Zp42GuLCQ5VZW1HVYUJyrLkf6+rMKl23J9Bj9K4RQmh0mkTpQm6dBehbKxZpUQ/ZYq05v94xe252utsQKw7PouIStcFwwO2rUePEgQGl1qe7nItq6EpGVXHkoUMZDCq9VcVocXkGq+jJlPDWpI0TUOt4V4kzlBhsykitMlohkFEIEYqyn8kSBy1CEaNHezLCFVBrJioaqRr6gxqxIFT06iFMCCDQhQyMKMABTD//OkxDBCzC6AANsNzUpOB3TgDUyRDMg6ThVMmbCIBABGp4w8UMHAh0DMRJTbwJkirUUTCBRx1FRGDA45BTW4moDkrxSWusI3d5IaazGXcq7mXehmEKbsqZU78tVjdZM6kmY+3fb8yFpCRMqrSq3jjPTcNzl2iqXgXRB2VDt296rq1zrf96X/Hbd1nOn689/dt/YyXcQGXiXVc1R1hhwu2OVp31yowjBspLzr5bVrCIC6SrKQvwpTNs9Vtw7eWHZ7d1nu88FQYVl+PrsZTYB3eyqEtgtfSZZ0fTNhmecO2tZ7iiCOSyB9gaqESSdDBKSM0zuEoEEgUYQFhl1Ogo/lAHWKLBuIssKhAAQxMtuswaLjA5oMEgSARADDEx3C4IFB//OkxDdHM/KAAuaZFYmWyOcpYQKLyPCKSkXGfkv+YUQceAELmppjKPl8VhDCsTOljb0DGho26sOxBwy1Y8KMaEcJYjWYGapPJfp/Mely5HJZGk/AbB3EX2taXcmneeBMROdJZCpmUvn6RsDQHzh5/pTnGK9GMysWC0uhyW/TreimK2Vq6x2r1tsiYykT3Wo9N7R2fZZdLq2GDjc+Utk5Gx68/KRwRhCEIfkzxmVDErEmyYyXIhEM6HI1CpHCfHJPULavlt+1L0mmb01ysTVaYvyBmsWQ+sysN7v21msolqxYiOM9TsoUMFMghqC3QcOCUJZiAKBrUOpgCy4LHT6tbMhFAodoHJug4eeZ/BwKGjUYFDqhkwELBxCkUjeCRwDG//OkxC07xBqQFNsNscDR0zt1NaJ080GYaR5aciAXkLKuLAMrqagN+y36TMNTXXZhpYhahClnS6nZlN6gY5LxUDWCltq07EYfF4pdp64axopp1ICche1UxOzsJzI4BI2rBAw7G7y1TdtuJ515TWfozPTfur85/3+k/2ZnR5FboFzVFmVfiXZrDj9F8tXhX3fXLXyKkQjjXY6sYvfqocNmXzpqz+PM7e89te/7t3/vPPmv1lQ+s1l49+kLUcDwJrTVFpuyMzpjlrikNfl63qsHjlBhek/dGHNjEKp1TAPQLAEUj3NBKpgHFEZB6Wg/J2nzQAgAlWkdpNWAHXSuHy4sVTQUAVFALbP7gp93y9bHI3A8IpZRYUVghYZUzIpI9FAu//OkxFE5FAaMAsvRhUclHZVMygUzWPsqfufcZwKNEIQzqSGTOypIUmFSS9WHhY1so9udMz2WWR7LTiiOaZnDnrkf1dlu8jFZ/7r9HLYUhkiPsp6tptC5guhOLligig1LoSAKCgmC4oHhYHh+JwXC5NYpYqzFNMiVGZq+7/j+7vjhuVzVQaOtmmbgYaOQQxbOmiLQVNrREoOiagUkoLq1ymqAABkCjLbERAFdW9h4FFTatxYyoFIpTAQotPPfOUfFirsQ2g6yluqGRfKG68cSqhRCEtmHzYryzWMNZ4uRvMSPQ86md9I+ThxKNjeOHSw/yEjZIQPEvKLVCZMuQx20uZ/G6i1kvzCuS3nenVhiess9I1tzybk3YcseefCFuTBG//OkxH81bDqVVNPQ+M48fc3U99V/bQMFYXmhywusSTcwzMHZwhjCZoWYaBgfmHIEBgdg1Y4Rh5ZLRFW5cTSvcx//HP/9RxHc9DeXXqHO3NkzPLUpSiEkaR/n2TUdH8+7zfFoRYRNDmICgwYDdEwkNNVQDJSZnYYGqYGJGBowSCUMXUQEWoCUtVbnWTlQVeV7JI07PN42mwFvtJuSr+y5Zq0tJK+QDFG5RZ24MlMAzsZgqC10IrdbguZ90x1tgkCUVFAFgNkJASQ4g+lSEqG6HULmNRJq1FOkwxHCwtm5dRlHqIxwYUTOFlibYa2hSXaF57BeTzPoTbWvzreMUy7gPratSBXG/vL+H7bjPmB6+kxid+n0QqkdVUErKcsBfkOP//OkxLw+XDqIAtvHlufpxsQldH9CxNqO2sVp5oDx5Eje2r73n7+f53gZCfrgSAghBVFkYoGFFrieja5q3LwcGHUMGSUNJrg1YCEKUbQZMNKjEy4DCBpQCOh5xAI8aFhly4aKEltgQHGzD7Nm4xmpGXnVND0/TQRuoqGW0WWevdOH5b3lfCCq2XfprMRjUG42nJg9fS63ZfpSyrC2frJEIBkmAjQIgAvuHBzyNNgxUsNL+WS5jgqtjeLk8liFDvZgWVfTLa1JBmjv46oVKQulVxI+hYg39fbP39fX2y6+83h11v4+HsH1i4gqJ8+k33JGHE/cXrGXAbJkoayqFYHwMlEnTZuiMK0oDJngNx+Mjv0j0zeB93/9/wzMix57nfVp//OkxNU+bDqAANvTsGWRMIR9qqPkMJVSPcihx1TZjKdwla1kakGV4k8766JdFhYkXQUqAqQZhIWAAY3lhHAsAGp9ASautnZRIKFAaEGGAoBSjDgIs1DMERprzc5S+1mBcaN4mOUNyks5aVbnM41NwxQSqepaWX8icEsubWMtdSiU6T6bdbaxC44GIjHg0wNNS3AgoYKBpemLiZECrtRRT4IhG0WwBQkhKkDsJVtCHxVbh+30NyNCgskAxGQsRlkxS6HLs3D/SKcVN2GLbwtU1Pmn+85tbfvGYY2/fdIDDrfwvsR1KpRqNrRBJxGRYZ8E1LcAZh0jqN5cH2J2J4LEW4R5QMDkTYcJYR6VCnj0WDSVU7E0LpwYVLNeke0WWKN0//OkxO5JLDpwANvZsLdOVj9Kohs/AZrBV2LAciFz8RKPF+cfLLuSzlcdajWLmXINUoVDsvD2reJ0JbN1q48QmFZERuJMQU1FqgWF9RwRQHhdLGTJAGMtYDRTIGwwwOVgVhEQCShgciS5r72VpiWwNd+fiXZQ1C3eyuZ6ezti1hcp5R3tTVFUt7hiKqWva8MAMIUbIBEhAo4XIdns9ITrrQdd8YC0ZgtdnNVpRaaHaWQU1Fbp2y/AzC1zh9tqlonnpaMWFy62zDPdM515n56Zmf7s/s/PmZrS+tTYyq7Go3zwR1BOhYgDonnj61GsHE2EBAKrilUUEA+cRs0V1SLz2rlaP9zV5mZnL5E3/zT5zV1UpWZbqxCpSp77rNYPbzou//OkxNc6jC58wN4Yvf/um9HqfW0P32l2qxL86NnWz4dVWSAjoDiOYud5hYFApHmEDWfIFR24cGDSEODcEiIHB8YBRikitxctpD8xaD1AV/unLa1PBCxl5rXn5RPYOEsSNw8yjVt0XZU+/jwQdGFAmFM9URSGS5L6FrQwGGAwAYOIwiAIgCBikIGLguYvCDV2vhYDn4K6JKFpOaASYwC0L8EiYzhUCHrcVygQK5bY6mVSHo5NF6KcuBdzxxjNI1fj+lr/5pn6/zu+otaTzR7yYvNuJOqmZgW3VZT9iwDLH0oSSlqEUeY9JfhkJgyBQkJVBQrwxCFi7GMEhSAuYhRmD+Vc6pVihS0rqM53w7Zo+mydBNKpJweSVTCj8paLJcjR//OkxP9J/DpoAOPTlHJgTVFwAqE45BJ6ua9pIkptBqKM5EG9TWCpUcLGTxCjNBIiRPApyyJCqgAu4M4BKDiYfmIyGChmCAUYECRoMXBIVAQqAoMFAw05nSHoCGIcF3/eRW175lur2JzrHfd/ZitDTJ3UvYM2jkNJ7Oc6mU1PROga9AjwMwR4fZbyAsLNXA/jcjB8aK6ifhgWrFKsmHQ9TYRSpunmp2lcmYo7DcI/N08qlc7N0sjwpILlc7eR5S6a0/TW7Eb5nS7sVrF6vnUq9N/Ycvdz7RN06bQ1XJGmaY5v7DbIW4TmJa0W3TxWlHpo+aQlZVHxOlFxFKKtSG/mhMWJyedEwwcacVxVl+la1OIptPN2n1kdbtIbN+PJfz1U//OkxOpDvDp4XOYY/DGWULXU1noTL2KRIfwXWOHblb2ocLTNfU4Jzv56qhijQDa7TsUJwDwaRShgmMFGkwqGQgIGAwmYKgZjkvG6QiYvC48fi9C0YWPApQEIALAXApZ+INo4UOwPKqSWLsge9DUdc6Hp57rMPsuXdL25sGTva5OCgD0lltKjaBvSmhgI4kauwoQIB2m4RqVxWhlFDZzpZm27Fa9fh+kerlqpEJ+rTTnZXGoYp37iCVy8HwZq1uD4Fv75hTu5GaSG5e46+IrGJaoGn2/7K27OyqdMCQyyDHMtxt6IZcRdkgf9TNItQNy4mxBQBOinlsRd9q67IflDYGYRCBF0teUsbuyt2FhVN1TtGSISHLKN0YcMCU1a20N0//OkxO5SlDps0uYZXFpzOI2zBEyDnoWgpY6jbAwgCArQ41ugXYDUGC0CgBCqIYNwPmZgZ8QDSl8OT9OZsGNYSoIAjg0Bg2+aUYNarj/0KsAIGl3RzKLnJ8uyuK5ktKigEyXCrU+0oPElVQBo8+cKAxBf95UZumz6mYsn2MnJSuS8CTsUgR67rJdxBl8skbxzt6y/lX5epGdjVilYVhZLisnCAGwTy+hxCxMU0wGacuzlJUS5PCkCZHE5tllawzbVzGwU7BO3M0jkxx6OVDka3bGtP2XD/rMNXrpSubras3SmKtUNaliKaqLSqrOUhw/1cJ8bqvXIaaMN4fieT0AScQBCYQtscaMkRC3vZghLaGzNW59FPJ5KoLST+VQZ6yWJ//OkxLZUzDp1QNPxHA0ElMahGGIttN1J8NugwE0AiyAaEgRzQPAoWrMxM6RoaD6E4yGZ8ggY07iZJrOksIjGoS9QwhcQuGmklyzNMB4BCcWemO9CTKwr6LlZSh8lA3do7bxlsJbhYjkxgtQkInOytrauIZfwvQmI2kMLkgVp7lPq0SKPW5UBqdL2f9fDeOPH4Ka5J4+2JViyJbRyuTNiZvKoFlz1Oo+MWWWqgABCSmnnQHQOJXfQhfJ/TSLNSPDGet5VcL9af7u7gQUYOS1vKLtAnIUOgJTYwRkzht5V7F0h13I5a4epKnl3SWGRcQ9HFzR1y1U6Gl8mWhVsKOHwtLMuyuUXoly1RxW3W44eE1k+7h6eWG56GZc8rBZ52pl3//OkxHVFLDqOIMIw/OUxHB1I04EPNEdZzXOf9mrTS8BcxftVQZjrDHBf9Rcu0IgIJC4cNKmJCJKL2AUzsE4hOTi+6TBlGX0TWfRc7UmuOlbTKUIlbDUe2DxCG0qngaipu3CUN66s+tdv3AjMdhto6p2nRdBGpi7a2n0ft32TukpYuiH4Jdt+m+cibgKLNtE32fyGI5InMfSZgmOug/ravpC51XFiMUkIdOCInR2MrquQypFiZOsHh3w0k3DqhTXBR1L7hRdQI8aEzQowZj9DzFVwERCM+JmxEepmq22tMzq8vlkRlZkWMhaUivTv+Rq0JWO53m8aftfG3YvS6b3n2kluUYob0oic1XlF+nzlcR3llhDcb963wtwA7iv2SUzo//OkxHM6fDqiUHjw/L9OQ/jOXZpG8f535SqditA6SmLKUOTHKVkb+PCqaEMugtvoJZk8bN6FeshhchGBNJYs/UHOQ4zO6R5rGNPB8u5qmgOjfeCZmal7OnUgSzF5O8dBOZUTuM5ty/OknIrLpXHq9PEnNuQxLaaYy5WkueMbl0UwrzNEZIWkzsVUUVFICUbFexUtU1aalatrgRCISvKknb1yktXNWss86/KWexu85nM44TCRikTTMABARodjySCGyDZVcrIzGZGRdbIuR2bFa2Ke/vqJb3yur0gyLuOxsasc2ykd9D2wUvqsc6MQLK8/2Q5VtahJVjVjim0o4qhlRqfUyGsidfwjeOVHJ1sOQ3TeS60XEKGdJzEmVojgxSZH//OkxJw3vDqq8MBfNBDdQlOIYdR53gx2w6e4LaQVCghoaxIQojyb2mE+QbDIpGxOM0ZgTURqYZ4E7ldxxHmWm2j5haIrfCaayxXHKljt0Tenrqts0g1UfjRj+UHems4Txf0W44iYncZIXjsbjI5vYl6QYk9b3zbWNsEmN8DrRA4gGXyZVjVB6EU7oaVGzLL4ZmXds/PjlEQN5FoxwIblHgeDePudcsybgLlyjyM8Z1qApH0WFMzs0Cilh4TcR+jF9JEkWh6UmXlaIOf24KuJ8yM6kQprJ6QViQBIxDVYzoSzGUaZwouGSEp02f5QKosjtOpREyPllscIhpfm1Noa7MZ6u0jGNlyV4haPR7kriDGeUxEKeMfClHqckobplLlN//OkxNA7fDqiUHjfUKaiJCU6VApnCZkUiio/2xtymfsjuC4xDgclliQ1NmqklaopHLAOF944ppwWcbRlEpHHDvXi31Z+8md0tC1mLNb2nibcWdVGog0c2CrAiQadQ7eG3KzXGoApmeLiN3x27ImRjTE/7UdTPqJ8p2dNEpHUTkFHXxmLEQrsrbSmldiGnugmBq2MpxjsaavSxyITT7Ns89iKvpPP85kEyS46cvaa3z2t+xiLQU2zWIOgiNJVNOcBmT72Xokz8vHmvB/bL/vbCUwnff5+osoqpuyVCe7FG/AkdShsyYsccJVJsUBLpSwf97oo+zvKDNjjTtQuMX5cz9XTH0+3zWsX/XlDrkr3L/CQWYu+5rqus0mVv63CC5h3//OkxPVDHDqWKHmxUKOxu/yGalLMwDyco4enoRAkgnpW6720dQAjsIeN8dSiMSv7rK+zskeKwL6oTUzyDTMKPqV2l5s75a3PkBUACJEFTosYPg3GEXTNBZRsnxDNwxMnvNxaRb9i4jmw58jmZnQOGKMPrQeKggH5w0Mw3HZ59YjH3ShqWP5J3Bl1HUitA+sihDryZmb0S+YktVr1HEqF3aW9KYy885A0GP67b+PdTxdtH2eN0GXqEKDRKNRBy6WHI68sQgB3XpiTKWlROIhUTFmrQ7ALgrkLxJjKHNOf1gJbVLmEMCjzotAi0GPo1qB7rcJQ8awUUcixCEw2OLxXAUFUhMpmxNm7uLydFGVOiXOZJ2dN2bFDUifd1pluMNu6//OkxPtEpDqSCHow/ODBztO7Rdj110ojOu8o9fcOJsMXczVThUwEIxplhJUhQYJqoYxKKrLGXCmfo51XFpYMGLJirzb2lPXGNTOO2TYpnvxvwNdaGF2e+1/cjOfenpmnzns692O7m0yC5+Pl0sTT2z+azP3iPn7x8clde2QBFhGKcAQcRsPYhDqbDaQKl8DKNQZE7VhK0yWlI6MlxXEtaawtPqzkmDqKBpASINU8ASlkolGpcmWnPZjOS6rSzdLAjtT0hhMjcRw4rBLAmTOtJ5tri8WGUjBGlOcpe4BMV20zEkY02q96zis4ftgzzRaZj9RnGTElfOwqlUh9JFWtPpEdBtDJQ6yj9OIA4tImtwynIkewthbfuQ9DOF+NJh9u//OkxPpDfDqJYHsxPM7Kf0jpmNwIx9/bULVRpXIbrBFGQsVgLdmJFiwFSOzGIdZsz9j0bkLqOxcpMN2IzJrXyDDPKMS2pTWs/3KL98bGo4mx+4y3dkxpYu2pWJz5TJ5ZTvTaC1Mu507Zj9ZianTnSUpMja22rN1z2XZq1jKZeTSVtjorAOJIlAyHp5GkfcgHE9qcnsSY3LTKa6EnEpUWUKJ7x5JKaxKPB2AUr8gnggi0pAqOhtNNahdBWrSSXUVO7sMvFIpFAT7wI40NODHWjM0d5pSlyEpt25Kma277mOWnz0usy4uEZYMkdJ03dflVZqbspeu+4r1JDL2L3FQ6MDWkEqPspUxkygLRGAlyXTa5G3ZYaYFmYoCysjqargva//OkxP9HdDp4IMsxPMqUyU2bEkMwWLQYzqed5KlkCkmYlrVpOM6LwNtBrJZWdEtYOQA0/G9CGPAt/XEKhROIKovKm4AAIhQRpXfC3mTsIsus7bzukDpuJNzzREOcaz5LUtFLGZl7KcUkwtLtMeGXuQMvOWy1uL3xSOR16dUVBEmiYUeUNOAoI7hNbK6uz9ITOFQcQKHNEtw9LxdJL8P3llyBsySpmM05dm+MnJZEkmrSSubEEmrq49kB89Z+HrmK+kzAfXYBJS1OroT2qc6ZYMlzpohAGYUGS6p8Qzm9LH500JS4qFwETmgqHYchKK6lodhCH6A+UPFWESlQPDc9sVSYDU4RrD6yaOrrlmjEpFcKWC8B6GInAkuBYdg1YPhP//OkxPRErDpYAOYYnKOgjAjBqHAfYjdEkdTIxoNlpD5aOxaIJ8jFA9Oeex1MQU1FVQa0BMJewYWA0QEJgZ2TlhAHAcxEONYbTSMM1q2MREDHzkwIICgGWqgVJ5W4t8+LgOopKcbHCoRDywzHYPf1pqhqmLtKot2dkucvYwcMFQQtg5KumTP8+c5DPX2lM+9k3OxmAoPi8IWBb2HngzeZwZ/UupO3d09PBLIIu/jApVF9x6pPWaC3a5LvjtmhnMbV21q3yYs0shd60AtJBiJqByBeXqYMmGxaJ5iSszz/Zy8Yrcg8CJdAOoJTUSxeOrDrNidUklMkEiVGllEtScrz/T/HkqnyUZspfqUbrnT73AXZj2bn8TXVUVlr8WjVvFlo//OkxO9AvDpQFNmf7Pm7RjowmJuG6pzvUKpLbs3le6LcTBsgd150OhEIgmN1wMrMYcQgBjZvrG9+BpDc4IalzCgNiYCFSytuAWqqljK4ncUyV9B7caNDkm+GBilbogYTbusMrEspdTQnrTBBIsnQq9n4zTLVJMX7CzJ5+iGk/XNpP26SMpOmS6Jc5rKZX3iGE6UyHoWb6CE/L8h6HI5c2RL/+WZjgwLLl6/eq5dNrmyQG94zbg3ohs2ZnzVRqvDlgvVTlqfwqSZhtz+E6mhqaBAc8t6pq01PqWPAezoS47YZ1awy2jszqLqe1oV3zDFXTZtlmdxXa8+3K4NWdxrQtfNPibVM3mxiud7hx3umrdr4k3LWNGYtZbrMMGyux7SW//OkxP5EbDIwDM7eea0a6vXh1Lt5HiIUSFbOnDlBevotTADmAEbezuJO6NJtNdbwWAFgE2mfkhJgytaAwCcJkAmMO76RzTVhkBKpVgWNvi6z7sveZNVlBYFDhJCRHL9X9OZOWnVeaNmBJI5QD6Qp+cDNOX/Sg0qIiNU44lW/LowyHM/O1VRVUdEB8r0MIKPkMJVl2VDLK4JF2yQoGVy8mP1xHOoFi9qhmSFvDqjhWShvlscV6QRQnVojKg6B+Cc6mL1VqiE8eYeRrjpKx6E00/9y5DFV7XmljZTbePh0PVZYWHBMLStlwdWGKPFs5opbgJixk/XQXfray7GjlgtPOOPnuoZXPD5zNIcdUvl6F1OwycpXjwwPm5SLrJ6uvLi///OkxP5EhDotlMvZMAHZSKSbF5UfhUHhY9SdEFcT0aM0TEEMTQGDgCW4GNCgQSpqXJFQrpDIQ3yEBEhoQiYikXjcxraAtcModlozEH8Q1WASiAoJ5RGKeZ1QbBcxzltHig6DdQovKNAugSokBbRJjG6Fp4wzvR6PcoB2TMBysBELlHSnACxccjJDL4mCQUyKHxfLAGS+RgHld8lIaZfixe9EkLJ0foyEQY1JBRltBYMz82q0axIZNMEpWcEQHFR8Sh8bgJBfgjJ9j9DYj9O6vYM4zpYZUholSRY/BY+Xq4HbQFy63In0x8mo+e4ha++uVHqcyOnuVJkLGaHShuypQohhfaeYOXOUXZhIKGV1jqk5+TyreGhsTCU1hrC5dc2t//OkxP1ENDocCtPZDFh44ogMyQkJ0t26Id41Cgxx5l95OqYDZBUoDQSClxRoTnwUECg+CUgx0bKoA+rCV7BAM+yE7Fj0PdVyut2kxmZhYwoQKkBkwpdoDT19o8w+wBwHUbqz10W2UUWhCG4sce+QuO0p/oId5NKPwfKWmv67Msbi6NqUv7AdNTrpY69FeWu2/qRK9QPj8iH0TgLEoRi8W1QDR8JMakDhMJBimMjcnn48DiJRYLB0WExXXH6Qu3IheOpGgplQSh/PB5EdBQnDkuYPxm443U3aRHZknVNlqg6kUwLIpMA8WKSQOujYnHZmPhYwzUqZJh642mXHqksnx+0PCpxJHGricEqs5ZwzH+HjuM5eXGxcr9TpecLaEcpH//OkxP9JhDoUAN4YvIXCmYvtHh5VDK0o9kqpVZw4wILLSEnocGfCQPBFbKq47fibWn0pmExBAIQEh1NQkxElivFglLlsiwFPkKBkohKcBjivAwCMwCbEnIMuk+UQgCWECMYWQYhJycq5DBc2VoO5e6cJyj1IepO1kZ0dhA/GFD/njRHbUvmozoXh/Q2xLPyyPr6QJwYjoXi+VCk8Swt4SDxKMyaXAnOkaNMyWV57EJGvr+o0IywmgqueWlcczxtaWa2QDxS6oHVthNSBIe0Xl59WfQsL0Tap6I9ZdXWZde9U+ogHhhAU+R1yonuRuvp3Lk6blh5Q4eOriWjSs87RC9wwQ7zR+DDK1oOyyGdPX98+5dzHba/e7kMK6jUcMDWH//OkxOo/hDohatPYlDizNQGUjGSYVik4UrkeudZtd9JYDgJn1kaWXhcJL4MPRdTA4Bh8gEjAyMCgaDaFSCzvsyThVWrteS0a6vgH+QCpEKshxl6tGStyczJV4FyS+0gL6iMAlMu605C9AE5SQqEpNNVsCLqf9rDUHFhx6oynC06TrDM2ZbKHaf9XKlCDyRT5qCxCIQ1WlKnTBXiaGra+zdpG9bauLYfOck1SNKzE9We0T0TI7mOjVCGCGtOj4mlornrwnlfZPiSfF1TWNEXi0TEikoK20peEn42yGaxMF9PxDJ8BqzX3x8Zmp2wXhQuYkSIvZYP0SMp2YZKl+OXjZTN0yUumZxJcdLKjY40hNuTanV16CmqcvcyjLSdQdOr3//OkxP9I1DoYKt4Y3KwTCUTSI5dMeLDaofxxjqqwsIIkr5RtjBdcrqcxkuIR+wfLzJU0pk9o0x71E0QhW4NEZFSyQxp4WdsKd52KBxobhLsMSbxEiYVG09UrRRVqQXcuqmEmE9L4qUJOQuZ3RjeTx4F3Ng9dQVEouwJuHIkzPVqEqNDlQwodGONAm4wp8kqbjsByFuVKPTJSobCS548VD9cPaJa5G0PjZbODwnrDEe1DhkIiofFpKPB7Bm5GS0J1p1DfUOxGYi9WNhGSUqYviSmhCQvuOqVxHQEQ/sGZAPGBQViQlXWje51ZE4086ZXPExbg5bkC9k5gL3FtCTLI5nW7RCXp+7vIaG6aecH5C2IzQTuErH56YbAcnNIONkk6//OkxO5CbDIYANPY9bIZKidXEpcQjQtXMhG+FQwyW2T04M0O6GharFomMGUTDtMDFlKSUowVjLPEXDRDRAEhtHF28HVc5MZxWILbTxYQXrQUdw4UKOUyR8xi6EBFsQ83RzCyluSikISSs9C6i2HojEjCe7c7IScSVJEuTjPHJKixsTcq1GdhvMh8o9FKNPT2aSgLVPyRZFWxvYjZEP9mhnk1Qlhi2oGFSLUmYrGXJia35JIRcNxEXmZCElowUFZAOmieIkJXPU44oZ8yOT64tXLCMtrT82Njg9wxSmKaIuF8qLFCYtDcyM0hkTo3x3XxdxLlFiw/NbvE1CODynPKSc0V16N4pnSdDqarGBIOCkVjg5Fa/hW22UjCIoUQSc2s//OkxPdF7DoUANPY/Dpbh865yE2PMa5CMFhBSksurNPCle6RMc0mVhvq8tGZnTp7cFooBIjGw1TcoEyYFC4S8xdAwoSL+y9wXwLwLeoy/o4t5G0eTop1OLUOvQ7zpDEJsJsGMcJlKR6SEfq21G/CQ4zWlJMxoJ1WOCiYSiJihBY1xFhIYqGk+jqXF85ASTwJoK07NVpyJPQCQDZUJBTfHYMhEMBLQzwyw8E5Wckl5DK5gdjkhhC6bGxmJRicDGNShUsyJbTUL7o7kc0Xkwvmb/msa9zlvtGI8nxULlPurTGTFXmTw8Em6YhnJbEsslwcSSQysdsM6XHMSFgyK9m1LpTZ1SlMD2YWCc5Q8OKKTYnXuwRXFaaApQur4eSaPRTY//OkxPJE3DoUANvYnKsqlbxUMC6+J4UyXC+VyPzxkxVmPmKljlF0MuYSaMxnZmoE0afPoEzRAJIlE5Q0aEHra0h8YeAiweFEIadQk4pBy3OQlp6jwT48yEiHuSkGSLuHgupIS+rZbSPIYSZJD0EFNBjJuLaPAhsgxHq0e8cwV2TCiPhmUQOE+x0dxk0YtBIXiN6wGxbBdMccSXVljMsRHQjFhhGRU5WPTv1hiyfB+uabA6ZBkR37owwJ9Fp2U2FI9GpEE8f1iQzfuUjo5PFo71WaOaQrFxmETwmOHjFUJJuP8TiIzMl6EqGkOl76khplj7RbHpMljeLh8iXxYRCMdpVJ06UlbQgoidEtLRQOWjuI/KpKN3jI18GxxE+2678V//OkxPFFxDoUoNvYfD17BcSSvoJSC8/dOQkxaJxgO7V221S/TSr5KXkq5bLR6fRHTk8sCgYhIGNpJQqGBjZMByURACMy9kbggAUHZWrHGnVeNkNmETjnLHUrbZw4LMhDC7JGNHGCeCnOItpY5Yp+liZVYpkGUgMRzBREyfoAscL5VKi8rD2ZH6A6iPy6Po9C90svkp5S4PZiYK0ohm5PTUVrFRDSH45nnpVSGVDwsNEyAyHal6traSTEyI+OD2pJKxN4Gl3KLHVhaZTmTXG5bKZ5HGwQKHSVQkKUJzx2frmEqAmL3ko1WLzmB1lkrj64+erMQWDgToS0fjwpuFJdaYLjhLfkkOq3K6JsmJTMnC20sTVXoaV8tT/Eg7iRluEE//OkxO1CdDoUqNvY6I01GwVj1S0kewpP82pXxtQ95gcGC+h1DGwasWY2O8gzr1AhRFQBAuJAgQEFx2UtQBoAYMKLgX1JmTOu3RSUTgKB17sBcqnSGeGddeFwFTpaLrZzGYs3RXTWmb1X0hqCIBediErbI152l3PzHJg75eISAFRkbIQxeKQnmCqAFwxDktDqAoPjA0NzgD6Yd044kJMSSahDAC6AOy1YsNVbq8ax2LDJ6OSx54tiwwCmxAs7pcHgExKPpLPEGojE4vWThQW1ylAdZTCQRwhUEM5eXnBbLxKCkejlYHtSYeg2uPC4rXPiwWhoKsNBKgRnJsOI4qi4UiALmgatHyHCTYExVYH9sBwnmJVIt1L45LEa5YnPTgkt//OkxPZJPDoMANsffCAXTh0RuKwhUufpgPWXDgh08Z81rhSnsnUK0jp3mHcZULZVQ2ZojRz9Ukjc3ulbNCzOerLglshYyhrBFZm/TFS8Ph0elvN3CkfApBq4SiOhhyPQlAeBiYlkaRSBE+MV8ZwEzlAS8dbUH648e4ZW42LyY2dKyoqj64sPj5xkzhLo7KYeq8RQOlwQR1TuH695RRXYl5RhMeMGV4TkJWS02ndOUTSx84bKzqN0xXFhMmE8t3bPVpKM1JCiH5UXLxkNwxJ10qAT1ErmJMy6TYPPk7fHy58tvDsfH8JdyC0P6SY1y4deexmCjdxIP7tn+6fvYuqJpZWFb0Tia5SjejPTkzXLsPYTpi6JiOJxMfK7mORySXF///OkxOQ+VDoEANYYDN8EGJ04K2a6uMkw/ojx1clqhGxzV9VMQU1FVVVVAbWth0p+kKZpWOfA0psMDRqHH1hFjRp4onOsr298RjbthwhzdBV21TAjLhCmZreKdCEUnWWp6Kgt6EhrIcmHmT1EfPTKdfqmK3J9zhH8zu8uJwuCmfOTM3uDChjCwEhYnNtodCjtDaHNTF8MZ0cF88LJT4SqrTsmKS49JY04JhEWlipgoCUuiIiaEhU9U29MOxJTL1RkPpxjy0eSyc1xBPjM6OB5iOx0aOCQs1eZFpW3RTaO56eOp0+uLnDxK2c4bLixUmFVYkbJMJ18MRNjMlzMT56T/sfmD7xhC0UGhOosfaqOpefL5aOU9oG2o0Mp+kVhWeUa//OkxPZCXDoEUsvY3B+u8nWG6GTTkqlA7QyanPTxhehqMSgA+hcdiruoBGPseamHDITVBUyIBTMpICoEg0a4+3cgmg9FssqRUBAERsPY4jqNMROhJglD6vLY/mYKjcfDNKI5PD1CJhoOZ9GPA8DEWg+JJIIpfMAAgPUVFqJBLwejuSRiITVPNyPQo0J6YomY7axtrEijSoyK0nDMwN5vK9DIrCk2BIRWBwO49zHeq4s2w7Tpck2nYL50xoxtThvqQ1S/HalDpLYjltDlK44T6yyo9KsjO1zEDVJ+j0oSpHZ+M7OorvTBTk66UcRqLgf7kj1aqY62eyqVTMkezm+oESukOL850huUZQq54rWmdHR3FCWV9HOk5EyvoQdtm1II//OkxP9JjDXwAMse2NQ9DmdRN7EpE4wyLcBFIVCnJGecu2GJHeTJSIu3RzIy8i7equHOdtUy1bP+hDBhEliLHZYXnVE9atybhMofAjcX8CykiC3hVORCbxoIFAilMIWK+Tw3R/Js9grT5KcuhUpcuQ/zsFnT62hoQEUstpIxZSXjiPlD3BMSSjdW6DsEXC0EcpkPUxiJPJusY+0LV5dR8k/OhTGVhyRh3OkQPUTY8DcXBcDx3Lc4WB6xoYvLzXVOSHuf57owykXVGIFaHinS3GKW1do5nQlD0xHVMJdIxFEaLiRLyCjlKdB4t6fO8laNOJqcFssENLljU4mBP3N09RCJdwobxKs+ZXNSmWd8dpO5hZxjNhRqtaNNOMZ2lxfs//OkxOtPDDnsAN4eFMsRp0NwUJgoSoy3OClURkllMzpxHE3Og8LsChSzIuHygWXqmOSR61q5Wj1luPwmBCVt6kriEHyWxFKxa1BQ/Ucvz6UnJnp5XPVljQ1Ns79YXSpMVbueCA45hS6DzZOHCIzLq8rlE7F4lchqTv7G3ogHJ+aaXRiE8nJdy/N0VqarfIj4+EkpFUqjimQweEdg4HEnFpSv5dU8I7BOLSJMgnhPHm5iPmoTIzVlRt1LiQyZstIyEiPlrjCHE8uZc9mGCtIVp202tT4dsKMfiMT2NL/VpZpatWvtlP2lPWcu9NW1L+rf1xiNSygOPymnzzbs42puoTNlGMJuM+BNkapPMhpJOZ7knmlIRbHy8lkecXvb7BUx//OkxMA0/DIQUssNPAB1FvXo7FkM1VbLZcIs2KZLYONXNiYIy4qjRpOOSsFiTP0hZ1dq2SE1BJhhhgk4WkKNYupiOzPPbKpF2Y15cJhBEmPBdxi3kmKJrSKt0dEQ9oBPVS4KVIyHUoVDEYU6hr0+FlFPkrg5nZ9zltHEhxpHMQYnzM6ViGvWdOuEjNIhLKnU8tPzhWVfIn2oyksil0rXxvOKzKpT9cVARkQ0v50rC0uLMy0xnesxjSS9GJyVzm4lxJ6Tk4XGqJOZDrSwU66Tp+qdCodUinVzeeVVRWRDi/MUGM4srLDitsROtCyulKzHMQoxlKpHGO2NKuZ2bwHimP4fzlBZC7OTCTkXE0TlXA9SrL6c5ymSstZbTJNSKy1Z//OkxP9KzDnYAOaeBA/mNULURTNtVarlsxVAni7RVc6fIcxObyiRVLczkJX3sRSncP5NsqZYk9lEqglOmCiO4EjMLTmPYIGVYtqDCBRwVLUkWoFh0EKmossIA22EmzWiTLDAgUiMhF/hZEqjKVAURDobQRcsW4IVi2YClBJDOGmBO4PdQnGS6Dhl1KWi2wWZUcYEEIT8LUmhNHiHffdW1WOF9QTEJK61sIgtwc42DhAKoEDzwC4HSs8SHiYKHLgFAxCWXJXMrOTDooRlJYQCLtk5MqEDsgS8iyIKdA8MSjQKhgzhz2MIwJGK3BgwUBMhoWFtFyIBTFVWT0HAE1YuydbZeB62ZLOQXagVBFQsYQ0ago02MlASAQ0Ye3MtGqJW//OkxOZj7DnEEO6yAPVYz6EpWPMl6wJcq90zHXTqVtR8Z2g6i2n8zpOdX7aI8I+KUqNOy6jHkKC+iGikHrLRmKDGIAS5rQ0DQVsdXa4zEFruS2CQrwe1LstgxuJLNDi1RrQFAmm1C1EEydpDcWtKYJyMndtpEUjChTaUjor8UqctrbzwQ2VQJ22+mGwEQCB8ZVXgyTOiruKuuxNubGnjwiDJ59yWsKqLAJKteUDhiBlcccuUuk9lTEEatNxuS2ySsKqlBR3VdtSbjHSjHGP2mhZVFIZcx/F/+qrVVjGpVV6pfsdVS8/2oCJDAIlVCgImAS/8Y6aqql1f+MzXq/S/+bf6lAzZRVJmq7KXqv7H//FXZtVX6W3V6pepf9XjHnxj//OkxGcek75JvhpHA9S14fqFDNqAkmzhX/jkN4dzE0KVTEFNRTMuMTAwVVVVVVVVVVVVVVVVgBAZ71mZ4FkIppOJ7qYLHYI09735cpwW5N1YQvteD0QHDEPyaLQzEoBgGAoNgCG4xF5NIoef19oBMIzy6F/L4iE+yTxX0GFLBkhvHbi+YW5iXK6X2xjeP4k0asKDJLS95oz182tTW1NzW1N8CPEn1W0GFLJDgSyyZxnGcZzjOL63r/OM4z96rasJhXS+2Mb945uKiTqKPU7ifF1JkUJmF3L4X85FIxvHNlEqsmmkvB7MlVlk0l4PdKKFZVJdScN2MkKxU4uoo25pCiKnDpU4dURsPZkiVWKnF1EbDiYlIhCNB8YEY2URsHyU//OkxOo/bDkZjMPTPIiEsIhkaGyBGgbcyiISIZDw2QEaTEFNRTMuMTAwqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"></audio>
+
+    <section id="welcome-screen" role="dialog" aria-modal="true" aria-labelledby="welcome-title" class="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div class="w-full max-w-md text-center flex flex-col items-center">
+            <div aria-hidden="true" class="w-20 h-20 rounded-3xl bg-white border border-[#DCE5DC] shadow-lg flex items-center justify-center text-4xl mb-7">🀄</div>
+            <p class="text-[11px] uppercase tracking-[.24em] font-bold text-[#527560] mb-3">Mahjong Exchange Pro</p>
+            <h1 id="welcome-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#26332C] leading-tight">Selamat Datang di Mahjong Exchange</h1>
+            <p class="mt-3 text-sm text-[#657267]">Siap mulai menghitung chip dan hasil permainan?</p>
+            <button id="welcome-start" type="button" onclick="startExperience()" class="mt-8 min-w-44 min-h-12 px-8 rounded-xl bg-[#527560] hover:bg-[#42634F] active:scale-[.98] text-white font-bold tracking-[.12em] shadow-md transition focus-visible:outline-none">MULAI</button>
+            <span class="sr-only" id="welcome-audio-status" aria-live="polite"></span>
+        </div>
+    </section>
+
+    <!-- TOP NAV HEADER -->
+    <header class="sticky top-0 z-40 bg-[#101310] border-b border-[#343B32] px-3 sm:px-4 py-2.5">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#242A23] border border-[#343B32] flex items-center justify-center text-[#F0F0E7] font-extrabold text-base">
+                    🀄
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm sm:text-base text-[#F0F0E7] tracking-tight leading-tight flex items-center gap-1.5">
+                        Mahjong Exchange
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#242A23] text-[#789B7E] border border-[#343B32] uppercase tracking-wider">Pro</span>
+                    </h1>
+                    <p class="text-[11px] text-[#A5AA9E] font-medium">Kalkulator Hand & Rekap Menang / Kalah</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+                <!-- Settings: Chip Rate Only -->
+                <button onclick="openSettingsModal()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#242A23] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Atur Nilai Rate Chip" aria-label="Atur nilai rate chip">
+                    <i data-lucide="settings" class="w-4 h-4 text-[#64866B]"></i>
+                </button>
+                <button id="btn-reset-all-names-chips" type="button" onclick="confirmResetAllNamesAndChips()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#2A201F] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Reset nama dan chip keempat pemain" aria-label="Reset nama dan chip keempat pemain">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-[#D77F79]"></i>
+                </button>
+                <!-- Audio Toggle -->
+                <button id="btn-sound" aria-pressed="true" onclick="toggleAudio()" class="w-8 h-8 rounded-lg bg-[#171B17] hover:bg-[#242A23] text-[#A5AA9E] hover:text-[#F0F0E7] flex items-center justify-center transition-colors border border-[#343B32]" title="Suara chip" aria-label="Aktif/nonaktifkan suara chip">
+                    <i data-lucide="volume-2" id="icon-sound" class="w-4 h-4 text-[#64866B]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN NAVIGATION TABS -->
+    <div class="max-w-5xl w-full mx-auto px-3 sm:px-4 pt-2.5">
+        <div role="tablist" aria-label="Bagian aplikasi" class="p-1 rounded-xl bg-[#171B17] border border-[#343B32] grid grid-cols-2 gap-1">
+            <button role="tab" tabindex="0" aria-selected="true" aria-controls="view-calculator" onclick="switchMainTab('calc')" id="tab-btn-calc" class="py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 bg-[#64866B] text-[#101310]">
+                <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                <span>Kalkulator Chip Hand</span>
+            </button>
+            <button role="tab" tabindex="-1" aria-selected="false" aria-controls="view-recap" onclick="switchMainTab('recap')" id="tab-btn-recap" class="py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 text-[#A5AA9E] hover:text-[#F0F0E7]">
+                <i data-lucide="trophy" class="w-3.5 h-3.5 text-[#C3A66A]"></i>
+                <span>Rekap Hasil</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-4 flex flex-col gap-3">
+
+        <!-- VIEW 1: CALCULATOR SECTION -->
+        <div id="view-calculator" role="tabpanel" aria-labelledby="tab-btn-calc" class="flex flex-col gap-3">
+
+            <!-- PLAYER SEAT SWITCHER (4 PLAYERS) -->
+            <nav class="bg-[#171B17] p-1 rounded-xl border border-[#343B32] flex gap-1">
+                <button aria-pressed="true" onclick="switchSeat('East')" id="seat-East" class="seat-btn flex-1 py-2 px-1 rounded-lg font-semibold text-xs flex flex-col items-center justify-center gap-0.5 transition-all bg-[#64866B] text-[#101310]">
+                    <span class="flex items-center gap-1 font-bold">
+                        <span class="text-xs">東</span> <span id="seat-tab-name-East">Pemain 1</span>
+                    </span>
+                    <span id="seat-status-East" class="text-[10px] font-mono-tabular px-1.5 py-0.2 bg-[#101310]/30 rounded font-bold">0 chip</span>
+                </button>
+                <button aria-pressed="false" onclick="switchSeat('South')" id="seat-South" class="seat-btn flex-1 py-2 px-1 rounded-lg font-medium text-xs flex flex-col items-center justify-center gap-0.5 transition-all text-[#A5AA9E] hover:text-[#F0F0E7] hover:bg-[#242A23]">
+                    <span class="flex items-center gap-1">
+                        <span class="text-xs font-bold text-[#C3A66A]">南</span> <span id="seat-tab-name-South">Pemain 2</span>
+                    </span>
+                    <span id="seat-status-South" class="text-[10px] font-mono-tabular px-1.5 py-0.2 bg-[#101310] rounded">0 chip</span>
+                </button>
+                <button aria-pressed="false" onclick="switchSeat('West')" id="seat-West" class="seat-btn flex-1 py-2 px-1 rounded-lg font-medium text-xs flex flex-col items-center justify-center gap-0.5 transition-all text-[#A5AA9E] hover:text-[#F0F0E7] hover:bg-[#242A23]">
+                    <span class="flex items-center gap-1">
+                        <span class="text-xs font-bold text-[#C3A66A]">西</span> <span id="seat-tab-name-West">Pemain 3</span>
+                    </span>
+                    <span id="seat-status-West" class="text-[10px] font-mono-tabular px-1.5 py-0.2 bg-[#101310] rounded">0 chip</span>
+                </button>
+                <button aria-pressed="false" onclick="switchSeat('North')" id="seat-North" class="seat-btn flex-1 py-2 px-1 rounded-lg font-medium text-xs flex flex-col items-center justify-center gap-0.5 transition-all text-[#A5AA9E] hover:text-[#F0F0E7] hover:bg-[#242A23]">
+                    <span class="flex items-center gap-1">
+                        <span class="text-xs font-bold text-[#C3A66A]">北</span> <span id="seat-tab-name-North">Pemain 4</span>
+                    </span>
+                    <span id="seat-status-North" class="text-[10px] font-mono-tabular px-1.5 py-0.2 bg-[#101310] rounded">0 chip</span>
+                </button>
+            </nav>
+
+            <!-- TOAST FEEDBACK NOTIFICATION -->
+            <div id="toast-banner" class="hidden bg-[#171B17] border border-[#343B32] text-[#64866B] text-xs px-3 py-2 rounded-lg flex items-center justify-between shadow-md animate-toast">
+                <span id="toast-msg" class="font-medium text-[#F0F0E7]">Chip ditambahkan</span>
+                <span id="toast-chip-badge" class="font-mono-tabular font-bold bg-[#242A23] text-[#789B7E] px-2 py-0.5 rounded text-[11px] border border-[#343B32]">+100</span>
+            </div>
+
+            <!-- PLAYER PROFILE & SCORE DASHBOARD CARD -->
+            <section class="panel-card rounded-xl p-3.5 shadow-sm relative overflow-hidden">
+
+                <!-- PLAYER NAME AND SAVE CONTROLS -->
+                <div class="mb-2 pb-2 border-b border-[#343B32]">
+                    <label for="active-player-name-input" class="block text-[10px] font-semibold text-[#A5AA9E] mb-1">Nama Pemain</label>
+                    <div class="flex items-center gap-2">
+                        <div id="player-name-block" class="flex items-center gap-2 flex-1 min-w-0 cursor-text" onclick="preparePlayerNameEntry()">
+                            <i data-lucide="user-edit" class="w-4 h-4 text-[#64866B] flex-shrink-0"></i>
+                            <input type="text" id="active-player-name-input" aria-label="Nama pemain untuk kursi aktif" aria-describedby="player-name-help" onblur="restorePlayerNameIfEmpty()" onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveActivePlayerName(); }" placeholder="Nama Pemain..." class="bg-[#121612] border border-[#343B32] hover:border-[#64866B] focus:border-[#64866B] text-[#F0F0E7] font-bold text-xs rounded-lg px-2.5 py-1.5 w-full min-w-0 focus:outline-none transition-colors">
+                        </div>
+                        <button id="btn-save-player-name" type="button" onclick="saveActivePlayerName()" class="min-h-[42px] min-w-[48px] px-3 py-2 rounded-lg bg-[#64866B] hover:bg-[#789B7E] text-[#101310] font-bold text-xs">OK</button>
+                    </div>
+                    <div class="mt-2">
+                        <span id="current-seat-tag" class="text-[10px] font-semibold text-[#C3A66A] bg-[#121612] px-2 py-1 rounded border border-[#343B32]">Kursi 1 (Timur)</span>
+                    </div>
+                </div>
+                <div id="player-name-help" class="mb-3 rounded-lg bg-[#121612] border border-[#343B32] px-3 py-2.5 text-[11px] text-[#A5AA9E]">
+                    <p class="font-semibold text-[#C3A66A] mb-1">Cara mengisi nama pemain</p>
+                    <ol class="list-decimal pl-4 space-y-0.5">
+                        <li>Pilih kursi pemain pada baris kursi di atas.</li>
+                        <li>Klik blok nama untuk mengganti, lalu ketik nama baru.</li>
+                        <li>Tekan <strong class="text-[#F0F0E7]">OK</strong> untuk menyimpan. Nama tampil di Rekap dan Histori.</li>
+                    </ol>
+                    <p class="mt-1 text-[#879287]">Tombol reset di sebelah Pengaturan mengembalikan nama default dan mengosongkan chip untuk keempat pemain. Histori serta data lain tidak berubah.</p>
+                </div>
+
+                <!-- DUAL TARGET MODE CONTROLLER -->
+                <div class="mb-3">
+                    <label class="block text-[10px] font-semibold text-[#A5AA9E] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Pilih target input keypad:</span>
+                        <span id="active-hand-mode-text" class="text-[#C3A66A] font-mono-tabular text-[11px]">Modal Chip</span>
+                    </label>
+                    <p class="text-[11px] text-[#657267] mb-2">Modal = jumlah awal sebelum bermain. Chip di tangan = jumlah akhir setelah bermain.</p>
+                    <div class="grid grid-cols-2 gap-1 p-1 bg-[#121612] rounded-lg border border-[#343B32]">
+                        <button aria-pressed="true" onclick="setTargetMode('starting')" id="target-mode-starting" class="py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-[#C3A66A] text-[#101310]">
+                            <span>Modal Chip</span>
+                        </button>
+                        <button aria-pressed="false" onclick="setTargetMode('hand')" id="target-mode-hand" class="py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-[#A5AA9E] hover:text-[#F0F0E7]">
+                            <span>Chip di tangan</span>
+                        </button>
+                    </div>
+                    <button id="mark-hand-zero" type="button" onclick="markHandAsZero()" class="hidden mt-2 w-full min-h-[42px] px-3 py-2 rounded-lg bg-[#242A23] hover:bg-[#2E382F] text-[#C3A66A] border border-[#C3A66A]/40 font-semibold text-xs transition-colors">
+                        Tandai On Hand habis - 0 chip
+                    </button>
+                </div>
+
+                <!-- QUICK COPY STARTING STACK ACTION BUTTON -->
+                <div id="copy-starting-all-bar" class="mb-3">
+                    <button onclick="copyStartingToAllPlayers()" class="w-full py-1.5 px-3 rounded-lg bg-[#242A23] hover:bg-[#171B17] text-[#C3A66A] border border-[#343B32] font-semibold text-xs flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="copy" class="w-3.5 h-3.5 text-[#C3A66A]"></i>
+                        <span>Salin Modal Pemain Ini ke Semua Pemain (4 Seats)</span>
+                    </button>
+                </div>
+
+
+            </section>
+
+            <!-- LIVE CHIP TOTALS AND EDITABLE TRAY -->
+            <section class="panel-card rounded-xl p-3.5 shadow-sm relative overflow-hidden">
+                <!-- PLAYER STATS GRID: STARTING STACK OR FINAL HAND CHIPS -->
+                <div id="player-stats-grid" class="grid grid-cols-2 gap-2 mb-3">
+                    <!-- Starting Stack Block -->
+                    <div id="card-block-starting" class="bg-[#121612] p-2.5 rounded-lg border border-[#343B32]">
+                        <span class="text-[10px] font-semibold text-[#A5AA9E] uppercase tracking-wider block">Modal Chip:</span>
+                        <div id="display-starting-pts" class="text-sm sm:text-base font-bold font-mono-tabular text-[#F0F0E7] mt-0.5">0 chip</div>
+                        <div id="display-starting-rp" class="text-[11px] font-mono-tabular text-[#C3A66A]">Rp 0</div>
+                    </div>
+                    <!-- Hand Chip Block -->
+                    <div id="card-block-hand" class="bg-[#121612] p-2.5 rounded-lg border border-[#343B32]">
+                        <span class="text-[10px] font-semibold text-[#A5AA9E] uppercase tracking-wider block">Chip di tangan:</span>
+                        <div id="display-hand-pts" class="text-sm sm:text-base font-bold font-mono-tabular text-[#F0F0E7] mt-0.5">0 chip</div>
+                        <div id="display-hand-rp" class="text-[11px] font-mono-tabular text-[#78B58A]">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- TRAY CONTROLS: VIEW MODE ONLY -->
+                <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-[#343B32]">
+                    <div class="flex items-center gap-1">
+                        <span id="hand-tray-title" class="text-[10px] text-[#A5AA9E] font-semibold uppercase tracking-wider">Modal chip:</span>
+                        <button onclick="toggleHandViewMode()" id="btn-toggle-view" class="px-2 py-0.5 rounded text-[10px] bg-[#121612] hover:bg-[#242A23] text-[#F0F0E7] border border-[#343B32] flex items-center gap-1">
+                            <i data-lucide="layers" class="w-3 h-3 text-[#C3A66A]"></i> Mode Tumpukan
+                        </button>
+                        <span class="text-[10px] text-[#657267]">Ketuk tumpukan atau tombol × untuk mengurangi 1 chip.</span>
+                    </div>
+                </div>
+
+                <!-- CHIPS IN HAND TRAY -->
+                <div id="chips-breakdown-container" class="min-h-[95px] max-h-[170px] overflow-y-auto overflow-x-hidden flex flex-wrap gap-x-2 gap-y-3 items-end justify-start pt-4 pb-3 px-2 border border-[#343B32]/40 rounded-lg bg-[#121612]/60 mt-2">
+                    <span class="text-xs text-[#777F73] italic py-3 w-full text-center">Tangan kosong. Ketuk tuts chip di bawah untuk menambahkan.</span>
+                </div>
+            </section>
+
+            <!-- VEGAS POKER CLUB CHIP KEYPAD MATRIX (14 DENOMINATIONS ORDERED 1 TO 10K) -->
+            <section class="panel-card rounded-xl p-3 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2.5 px-0.5">
+                    <h2 class="text-[10px] font-bold uppercase tracking-wider text-[#A5AA9E] flex items-center gap-1.5">
+                        <i data-lucide="grid" class="w-3.5 h-3.5 text-[#C3A66A]"></i> Tuts Chip Vegas (14 Pecahan)
+                    </h2>
+                    <!-- Denomination Category Filters -->
+                    <div class="flex flex-wrap gap-1">
+                        <button onclick="filterChipGrid('all')" id="filter-all" class="text-[10px] px-2 py-0.5 rounded font-bold bg-[#242A23] text-[#C3A66A] border border-[#343B32]">Semua</button>
+                        <button onclick="filterChipGrid('low')" id="filter-low" class="text-[10px] px-2 py-0.5 rounded font-medium text-[#777F73] hover:text-[#F0F0E7]">Kecil (1-25)</button>
+                        <button onclick="filterChipGrid('mid')" id="filter-mid" class="text-[10px] px-2 py-0.5 rounded font-medium text-[#777F73] hover:text-[#F0F0E7]">Sedang (50-500)</button>
+                        <button onclick="filterChipGrid('high')" id="filter-high" class="text-[10px] px-2 py-0.5 rounded font-medium text-[#777F73] hover:text-[#F0F0E7]">Tinggi (1K-10K)</button>
+                    </div>
+                </div>
+
+                <!-- CHIP MATRIX GRID (ORDERED FROM 1 TO 10K) -->
+                <div id="chip-keypad-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2.5 justify-items-center">
+                    <!-- Dynamically populated via JS -->
+                </div>
+            </section>
+
+        </div> <!-- END VIEW CALCULATOR -->
+
+        <!-- VIEW 2: DEDICATED RECAP TAB SECTION -->
+        <div id="view-recap" role="tabpanel" aria-labelledby="tab-btn-recap" class="hidden flex-col gap-3">
+            <section class="panel-card rounded-xl p-3.5 shadow-sm">
+                <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-[#343B32]">
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold text-[#F0F0E7] flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4 text-[#C3A66A]"></i> Rekap Hasil Meja
+                        </h2>
+                        <p class="text-[11px] text-[#A5AA9E] mt-0.5">Rincian Modal, On Hand, dan Status Menang / Kalah</p>
+                    </div>
+                    <!-- TABLE BALANCE BADGE -->
+                    <span id="tab-recap-table-balance" class="text-[10px] font-mono-tabular font-bold px-2 py-1 rounded bg-[#242A23] text-[#78B58A] border border-[#343B32]">
+                        Meja Balance (0 chip)
+                    </span>
+                </div>
+
+                <!-- RATE INFORMATION BAR -->
+                <div class="mb-3 p-2 rounded-lg bg-[#121612] border border-[#343B32] flex items-center justify-between">
+                    <span class="text-xs text-[#A5AA9E] font-medium">Nilai Rate Chip:</span>
+                    <span id="recap-tab-rate-val" class="text-xs font-mono-tabular font-bold text-[#C3A66A]">1 chip = Rp 1.000</span>
+                </div>
+
+                <div class="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button id="btn-share-recap" type="button" onclick="shareRecapImage()" aria-label="Bagikan rekap hasil sebagai gambar PNG" disabled class="min-h-[46px] rounded-lg bg-[#527560] hover:bg-[#42634F] disabled:opacity-45 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors">
+                        <i data-lucide="share-2" class="w-4 h-4"></i> Bagikan PNG
+                    </button>
+                    <button id="btn-download-recap" type="button" onclick="downloadRecapImage()" aria-label="Unduh gambar PNG rekap hasil" disabled class="min-h-[46px] rounded-lg bg-[#EDF2EA] hover:bg-[#E2EAE0] disabled:opacity-45 disabled:cursor-not-allowed text-[#26332C] border border-[#DCE5DC] font-bold text-xs flex items-center justify-center gap-2 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4"></i> Unduh gambar PNG
+                    </button>
+                </div>
+                <p class="text-[10px] text-[#7B877D] mb-3">PNG potret 4:5. Aktif setelah modal dan On Hand keempat pemain diisi; jika menu berbagi tersedia, pilih WhatsApp dari daftar aplikasi.</p>
+
+                <section id="completed-game-actions" class="hidden mb-3 p-3 rounded-xl bg-[#EDF2EA] border border-[#DCE5DC]" aria-labelledby="completed-game-title">
+                    <h3 id="completed-game-title" class="text-sm font-bold text-[#26332C]">Permainan selesai</h3>
+                    <p class="text-xs text-[#657267] mt-1 mb-2">Simpan hasil ke histori, atau simpan sekaligus mulai ronde baru. Histori tersimpan di perangkat ini.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button id="btn-save-game-history" type="button" onclick="saveCurrentGameToHistory()" class="min-h-[44px] px-3 py-2 rounded-lg bg-white border border-[#DCE5DC] text-[#26332C] font-bold text-xs flex items-center justify-center gap-2">
+                            <i data-lucide="archive" class="w-4 h-4"></i><span id="btn-save-game-history-label">Simpan Hasil ke Histori</span>
+                        </button>
+                        <button id="btn-start-new-game" type="button" onclick="confirmStartNewGame()" class="min-h-[44px] px-3 py-2 rounded-lg bg-[#527560] hover:bg-[#42634F] text-white font-bold text-xs flex items-center justify-center gap-2">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Simpan &amp; Mulai Permainan Baru</span>
+                        </button>
+                    </div>
+                    <p id="game-history-feedback" class="text-xs text-[#527560] mt-2" role="status" aria-live="polite"></p>
+                </section>
+
+                <!-- DETAILED PLAYERS RECAP CARDS -->
+                <div class="space-y-3" id="recap-tab-players-list">
+                    <!-- Dynamic rendering via JavaScript -->
+                </div>
+            </section>
+
+            <section class="panel-card rounded-xl p-3.5 shadow-sm" aria-labelledby="game-history-title">
+                <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#DCE5DC]">
+                    <div>
+                        <h2 id="game-history-title" tabindex="-1" class="text-sm font-bold text-[#26332C]">Histori Permainan</h2>
+                        <p class="text-xs text-[#657267] mt-0.5">Hasil yang sudah disimpan di perangkat ini.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="game-history-count" class="text-xs font-semibold text-[#657267] whitespace-nowrap">0 permainan</span>
+                        <button id="btn-clear-game-history" type="button" onclick="confirmClearGameHistory()" class="hidden min-h-[38px] px-2.5 py-1.5 rounded-lg border border-[#E4B7B4] bg-white hover:bg-[#FFF3F2] text-[#A53D39] font-bold text-xs whitespace-nowrap" aria-label="Hapus semua histori permainan">Hapus semua</button>
+                    </div>
+                </div>
+                <div id="game-history-list" class="space-y-2" aria-live="polite"></div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="py-2.5 text-center text-[11px] text-[#777F73] border-t border-[#343B32] mt-auto">
+        Mahjong Calculator &copy; 2026 &bull; Dibuat oleh Thendri
+    </footer>
+
+    <!-- MODAL 1: CHIP RATE / SETTINGS MODAL -->
+    <div id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" class="fixed inset-0 z-50 bg-[#101310]/80 flex items-center justify-center p-4 hidden animate-toast">
+        <div class="panel-card rounded-xl max-w-sm w-full p-4 shadow-xl relative">
+            <button aria-label="Tutup pengaturan" onclick="closeSettingsModal()" class="absolute top-3.5 right-3.5 text-[#A5AA9E] hover:text-[#F0F0E7] p-1">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+            
+            <h3 id="settings-title" class="text-sm font-bold text-[#F0F0E7] flex items-center gap-2 mb-1">
+                <i data-lucide="settings" class="w-4 h-4 text-[#64866B]"></i> Pengaturan Nilai Rate Chip
+            </h3>
+            <p class="text-xs text-[#A5AA9E] mb-3">Tentukan nominal Rupiah (Rp) untuk 1 keping chip.</p>
+
+            <div class="space-y-3">
+                <div class="bg-[#121612] p-3 rounded-lg border border-[#343B32]">
+                    <label class="block text-xs font-black text-amber-300 uppercase tracking-wider mb-1.5">
+                        Harga 1 Keping Chip:
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-amber-300 font-bold text-sm">Rp</span>
+                        <input type="number" id="setting-chip-rate-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="" class="w-full bg-[#07100d] border border-emerald-500/50 rounded-lg pl-10 pr-3 py-2 text-amber-300 font-black font-mono-tabular text-lg focus:outline-none focus:border-[#64866B]">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-[#A5AA9E] mb-1.5">Preset Pilihan Cepat:</label>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button onclick="setChipRatePreset(100)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 100</button>
+                        <button onclick="setChipRatePreset(500)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 500</button>
+                        <button onclick="setChipRatePreset(1000)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 1.000</button>
+                        <button onclick="setChipRatePreset(2000)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 2.000</button>
+                        <button onclick="setChipRatePreset(5000)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 5.000</button>
+                        <button onclick="setChipRatePreset(10000)" class="py-1.5 px-2 rounded bg-[#171B17] hover:bg-[#242A23] border border-[#343B32] text-[#C3A66A] font-mono-tabular font-semibold text-xs">Rp 10.000</button>
+                    </div>
+                </div>
+
+                <button onclick="saveSettingsModal()" class="w-full py-2.5 rounded-lg bg-[#64866B] hover:bg-[#789B7E] text-[#101310] font-bold text-xs transition-colors">
+                    Simpan & Terapkan Rate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CUSTOM CONFIRMATION MODAL -->
+    <div id="modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-msg" class="fixed inset-0 z-50 bg-[#101310]/80 flex items-center justify-center p-4 hidden animate-toast">
+        <div class="panel-card rounded-xl max-w-xs w-full p-4 shadow-xl text-center">
+            <div class="w-9 h-9 rounded-full bg-[#242A23] border border-[#343B32] text-[#D77F79] flex items-center justify-center mx-auto mb-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            </div>
+            <h3 class="text-xs font-bold text-[#F0F0E7] mb-1" id="confirm-title">Konfirmasi</h3>
+            <p class="text-xs text-[#A5AA9E] mb-3.5" id="confirm-msg">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+
+            <div class="flex gap-2">
+                <button onclick="closeConfirmModal(false)" class="flex-1 py-1.5 rounded-lg bg-[#171B17] hover:bg-[#242A23] text-[#F0F0E7] text-xs font-semibold border border-[#343B32]">Batal</button>
+                <button id="btn-confirm-act" class="flex-1 py-1.5 rounded-lg bg-[#D77F79] hover:bg-[#e2908a] text-[#101310] text-xs font-bold">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC JS -->
+    <script>
+        // 14 DENOMINATIONS ORDERED FROM 1 TO 10K WITH EXACT COLOR MATCHING FROM REFERENCE IMAGE
+        const CHIP_VALUES = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500, '1K', '2K', '5K', '10K'];
+
+        const VEGAS_CHIP_CONFIG = {
+            1: { outer: '#84c4db', inner: '#e5f3f8', border: '#ffffff', text: '#0a2342', val: '1', stripe: '#ffffff' },
+            2: { outer: '#cc3b98', inner: '#fae3f1', border: '#ffffff', text: '#3c096c', val: '2', stripe: '#f5c6e0' },
+            5: { outer: '#d72626', inner: '#fced68', border: '#fffbe8', text: '#1a1d20', val: '5', stripe: '#f2c94c' },
+            10: { outer: '#286fc6', inner: '#fbd4aa', border: '#ffeedd', text: '#03071e', val: '10', stripe: '#f3b876' },
+            20: { outer: '#3f9680', inner: '#a8ebd7', border: '#dcfaf1', text: '#112236', val: '20', stripe: '#72c7aa' },
+            25: { outer: '#218d45', inner: '#86e49f', border: '#ccfbe0', text: '#081c15', val: '25', stripe: '#49be65' },
+            50: { outer: '#1b63d8', inner: '#78b58a', border: '#ccfbe0', text: '#0f172a', val: '50', stripe: '#2874fc' },
+            100: { outer: '#1c1c22', inner: '#f28531', border: '#fed7aa', text: '#09090b', val: '100', stripe: '#f28531' },
+            200: { outer: '#6ce6ba', inner: '#d3f9ee', border: '#ffffff', text: '#064e3b', val: '200', stripe: '#ffffff' },
+            500: { outer: '#632e98', inner: '#e19bf5', border: '#fae8ff', text: '#2e1065', val: '500', stripe: '#e19bf5' },
+            '1K': { outer: '#e8bc35', inner: '#fef08a', border: '#fffbeb', text: '#451a03', val: '1K', stripe: '#fffbeb' },
+            '2K': { outer: '#3d2b21', inner: '#e8d5bc', border: '#f5f5f4', text: '#1c1917', val: '2K', stripe: '#bfa082' },
+            '5K': { outer: '#f03db8', inner: '#fcd3ee', border: '#fce7f3', text: '#831843', val: '5K', stripe: '#ffffff' },
+            '10K': { outer: '#e8ab8b', inner: '#fdebe3', border: '#fffdfc', text: '#431407', val: '10K', stripe: '#ffffff' }
+        };
+
+        function getNumericChipValue(key) {
+            if (key === '1K') return 1000;
+            if (key === '2K') return 2000;
+            if (key === '5K') return 5000;
+            if (key === '10K') return 10000;
+            return parseInt(key);
+        }
+
+        // GLOBAL APPLICATION STATE
+        let appState = {
+            mainTab: 'calc', // 'calc' or 'recap'
+            activeSeat: 'East',
+            targetMode: 'starting', // Default startup: 'starting' (Modal Chip)
+            multiplier: 1,
+            handView: 'stacks', // 'stacks' or 'list'
+            soundEnabled: true,
+            activeFilter: 'all',
+            chipRate: 1000, // Default: 1 chip = Rp 1.000
+            playerNames: {
+                East: 'Pemain 1',
+                South: 'Pemain 2',
+                West: 'Pemain 3',
+                North: 'Pemain 4'
+            },
+            players: { East: {}, South: {}, West: {}, North: {} }, // Final chip hand
+            handFinalized: { East: false, South: false, West: false, North: false }, // Distinguish unentered from zero chips
+            startingChips: { East: {}, South: {}, West: {}, North: {} }, // Starting stack chips set via keypad
+            history: [],
+            log: []
+        };
+
+        function hasFinalHand(seat) {
+            const hand = (appState.players && appState.players[seat]) || {};
+            return Boolean(appState.handFinalized && appState.handFinalized[seat]) || Object.keys(hand).length > 0;
+        }
+
+        let audioCtx = null;
+        const IDLE_WELCOME_TIMEOUT_MS = 6 * 60 * 60 * 1000;
+        const LAST_SITE_OPEN_KEY = 'mahjong_last_site_open_at_v1';
+        let idleWelcomePending = false;
+
+        // REALISTIC CERAMIC CHIP AUDIO SYNTHESIZER
+        function playChipSound() {
+            if (!appState.soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                const now = audioCtx.currentTime;
+
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(2400 + Math.random() * 200, now);
+                osc1.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+                gain1.gain.setValueAtTime(0.2, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.04);
+
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(650 + Math.random() * 50, now);
+                osc2.frequency.exponentialRampToValueAtTime(140, now + 0.06);
+                gain2.gain.setValueAtTime(0.18, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.start(now);
+                osc2.stop(now + 0.06);
+
+                if (navigator.vibrate) navigator.vibrate(8);
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            appState.soundEnabled = !appState.soundEnabled;
+            document.getElementById('btn-sound').setAttribute('aria-pressed', appState.soundEnabled ? 'true' : 'false');
+            const icon = document.getElementById('icon-sound');
+            if (icon) {
+                if (appState.soundEnabled) {
+                    icon.setAttribute('data-lucide', 'volume-2');
+                    icon.className = 'w-4 h-4 text-[#64866B]';
+                } else {
+                    icon.setAttribute('data-lucide', 'volume-x');
+                    icon.className = 'w-4 h-4 text-[#D77F79]';
+                }
+                lucide.createIcons();
+            }
+        }
+
+        // Short, low-volume result chimes; reuse the existing Web Audio context.
+        function playOutcomeSound(outcome) {
+            if (!appState.soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                const notes = outcome === 'win'
+                    ? [{ hz: 523.25, at: 0 }, { hz: 659.25, at: 0.11 }, { hz: 783.99, at: 0.22 }]
+                    : [{ hz: 392.00, at: 0 }, { hz: 293.66, at: 0.16 }, { hz: 220.00, at: 0.32 }];
+                notes.forEach(({ hz, at }) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const start = now + at;
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(hz, start);
+                    gain.gain.setValueAtTime(0.0001, start);
+                    gain.gain.exponentialRampToValueAtTime(0.045, start + 0.012);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.19);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(start);
+                    osc.stop(start + 0.2);
+                });
+            } catch (e) {}
+        }
+
+        // Play the embedded four-voice chorus; use browser speech if audio playback is unavailable.
+        function speakWelcomeGreeting() {
+            const audio = document.getElementById('welcome-chorus');
+            if (audio) {
+                audio.currentTime = 0;
+                const playback = audio.play();
+                if (playback && typeof playback.catch === 'function') playback.catch(speakBrowserFallback);
+                return;
+            }
+            speakBrowserFallback();
+        }
+
+        function speakBrowserFallback() {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance('Selamat bermain.');
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.86;
+                utterance.pitch = 1.12;
+                const voices = window.speechSynthesis.getVoices();
+                const indonesianVoice = voices.find(v => v.lang.toLowerCase().startsWith('id'));
+                if (indonesianVoice) utterance.voice = indonesianVoice;
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {}
+        }
+
+        function touchLastSiteOpenTimestamp() {
+            try { localStorage.setItem(LAST_SITE_OPEN_KEY, String(Date.now())); } catch (e) {}
+        }
+
+        function checkIdleWelcome() {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (!welcomeScreen || !welcomeScreen.classList.contains('hidden')) return;
+            let lastOpen = 0;
+            let welcomeSeen = false;
+            try {
+                lastOpen = Number(localStorage.getItem(LAST_SITE_OPEN_KEY)) || 0;
+                welcomeSeen = localStorage.getItem('mahjong_welcome_seen_v1') === 'true';
+            } catch (e) {}
+            const now = Date.now();
+            touchLastSiteOpenTimestamp();
+            if (welcomeSeen && lastOpen > 0 && now - lastOpen >= IDLE_WELCOME_TIMEOUT_MS) {
+                idleWelcomePending = true;
+                welcomeScreen.classList.remove('hidden');
+                document.getElementById('welcome-start').focus();
+            }
+        }
+
+        // INITIALIZATION
+        window.onload = function() {
+            let lastOpen = 0;
+            let welcomeSeen = false;
+            try {
+                lastOpen = Number(localStorage.getItem(LAST_SITE_OPEN_KEY)) || 0;
+                welcomeSeen = localStorage.getItem('mahjong_welcome_seen_v1') === 'true';
+            } catch (e) {}
+            const idleForSixHours = welcomeSeen && lastOpen > 0 && Date.now() - lastOpen >= IDLE_WELCOME_TIMEOUT_MS;
+            touchLastSiteOpenTimestamp();
+            loadSavedState();
+            const soundButton = document.getElementById('btn-sound');
+            const soundIcon = document.getElementById('icon-sound');
+            if (soundButton) soundButton.setAttribute('aria-pressed', appState.soundEnabled ? 'true' : 'false');
+            if (soundIcon) {
+                soundIcon.setAttribute('data-lucide', appState.soundEnabled ? 'volume-2' : 'volume-x');
+                soundIcon.className = appState.soundEnabled ? 'w-4 h-4 text-[#64866B]' : 'w-4 h-4 text-[#D77F79]';
+            }
+            renderChipKeypadGrid();
+            renderUI();
+            lucide.createIcons();
+            if (welcomeSeen && !idleForSixHours) {
+                document.getElementById('welcome-screen').classList.add('hidden');
+            } else {
+                if (idleForSixHours) idleWelcomePending = true;
+                document.getElementById('welcome-start').focus();
+            }
+            window.addEventListener('pagehide', touchLastSiteOpenTimestamp);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') touchLastSiteOpenTimestamp();
+                else checkIdleWelcome();
+            });
+        };
+
+        function startExperience() {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen.classList.contains('welcome-exit')) return;
+            const isIdleResume = idleWelcomePending;
+            idleWelcomePending = false;
+            welcomeScreen.classList.add('welcome-exit');
+            try { localStorage.setItem('mahjong_welcome_seen_v1', 'true'); } catch (e) {}
+            speakWelcomeGreeting();
+            document.getElementById('welcome-audio-status').textContent = 'Selamat datang. Aplikasi mulai digunakan.';
+            if (isIdleResume) {
+                const resumeTab = appState.mainTab === 'recap' ? 'recap' : 'calc';
+                switchMainTab(resumeTab);
+            } else {
+                openSettingsModal();
+            }
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            setTimeout(() => {
+                welcomeScreen.classList.add('hidden');
+                welcomeScreen.classList.remove('welcome-exit');
+                }, reducedMotion ? 0 : 480);
+        }
+
+        // MAIN TAB SWITCHER
+        function switchMainTab(tab) {
+            appState.mainTab = tab;
+            document.getElementById('tab-btn-calc').setAttribute('aria-selected', tab === 'calc' ? 'true' : 'false');
+            document.getElementById('tab-btn-recap').setAttribute('aria-selected', tab === 'recap' ? 'true' : 'false');
+            document.getElementById('tab-btn-calc').tabIndex = tab === 'calc' ? 0 : -1;
+            document.getElementById('tab-btn-recap').tabIndex = tab === 'recap' ? 0 : -1;
+            const btnCalc = document.getElementById('tab-btn-calc');
+            const btnRecap = document.getElementById('tab-btn-recap');
+            const viewCalc = document.getElementById('view-calculator');
+            const viewRecap = document.getElementById('view-recap');
+
+            if (tab === 'calc') {
+                btnCalc.className = "py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 bg-[#64866B] text-[#101310]";
+                btnRecap.className = "py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 text-[#A5AA9E] hover:text-[#F0F0E7]";
+                viewCalc.classList.remove('hidden');
+                viewRecap.classList.add('hidden');
+            } else {
+                btnRecap.className = "py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 bg-[#C3A66A] text-[#101310]";
+                btnCalc.className = "py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 text-[#A5AA9E] hover:text-[#F0F0E7]";
+                viewRecap.classList.remove('hidden');
+                viewRecap.classList.add('flex');
+                viewCalc.classList.add('hidden');
+            }
+            renderUI();
+        }
+
+        document.querySelector('[role="tablist"]').addEventListener('keydown', event => {
+            const tabs = Array.from(event.currentTarget.querySelectorAll('[role="tab"]'));
+            const current = tabs.indexOf(document.activeElement);
+            if (current < 0) return;
+            let next = current;
+            if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+            else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = tabs.length - 1;
+            else return;
+            event.preventDefault();
+            tabs[next].focus();
+            tabs[next].click();
+        });
+
+        // GENERATE REFERENCE-INSPIRED, LAYERED VEGAS CHIP VECTOR SVG
+        let chipSvgInstanceCounter = 0;
+        function generateChipSVG(valueKey, size = 64) {
+            const conf = VEGAS_CHIP_CONFIG[valueKey] || { outer: '#64748b', inner: '#334155', border: '#cbd5e1', text: '#0f172a', val: valueKey.toString(), stripe: '#e2e8f0' };
+            const id = `chip-${String(valueKey).replace(/[^a-zA-Z0-9]/g, '')}-${chipSvgInstanceCounter++}`;
+            const valueSize = conf.val.includes('K') ? 17 : (conf.val.length === 1 ? 25 : conf.val.length === 2 ? 22 : 19);
+            const showRimText = size >= 32;
+            return `
+                <svg width="${size}" height="${size}" viewBox="0 0 100 100" class="select-none pointer-events-none" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="${id}-rim" x1="0" y1="0" x2="0.18" y2="1">
+                            <stop offset="0%" stop-color="${conf.stripe}" />
+                            <stop offset="31%" stop-color="${conf.outer}" />
+                            <stop offset="76%" stop-color="${conf.outer}" />
+                            <stop offset="100%" stop-color="#171918" stop-opacity="0.78" />
+                        </linearGradient>
+                        <linearGradient id="${id}-face" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#fffefa" />
+                            <stop offset="100%" stop-color="#e9e8e3" />
+                        </linearGradient>
+                        <path id="${id}-top-arc" d="M 29 50 A 21 21 0 0 1 71 50" />
+                        <path id="${id}-bottom-arc" d="M 29 50 A 21 21 0 0 0 71 50" />
+                    </defs>
+                    <ellipse cx="50" cy="94.5" rx="36" ry="3.2" fill="#182019" opacity="0.14" />
+                    <circle cx="50" cy="49" r="46" fill="url(#${id}-rim)" stroke="#30332f" stroke-width="1.3" />
+                    <circle cx="50" cy="49" r="44" fill="none" stroke="${conf.border}" stroke-width="1" opacity="0.78" />
+                    <circle cx="50" cy="49" r="40.5" fill="none" stroke="${conf.stripe}" stroke-width="8.5" stroke-dasharray="18 9.9" stroke-linecap="butt" transform="rotate(-90 50 49)" />
+                    <circle cx="50" cy="49" r="35.5" fill="none" stroke="#171918" stroke-width="1" opacity="0.26" />
+                    <circle cx="50" cy="49" r="32.8" fill="${conf.inner}" stroke="${conf.border}" stroke-width="1.2" />
+                    <circle cx="50" cy="49" r="29.1" fill="url(#${id}-face)" stroke="#c8c6be" stroke-width="1.1" />
+                    <circle cx="50" cy="49" r="27.1" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.9" />
+                    <path d="M17 41 A34 34 0 0 1 34 19" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.44" stroke-linecap="round" />
+                    <g fill="none" stroke="${conf.border}" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+                        <g transform="translate(50 9)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(90 49) rotate(90)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(50 89) rotate(180)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                        <g transform="translate(10 49) rotate(270)"><path d="M-4 1h8M0-4v8M-2.8-2.8l5.6 5.6M2.8-2.8l-5.6 5.6" /></g>
+                    </g>
+                    ${showRimText ? `
+                        <text fill="#262925" font-family="Georgia, 'Times New Roman', serif" font-size="5.1" font-weight="700" letter-spacing="1.1">
+                            <textPath href="#${id}-top-arc" startOffset="50%" text-anchor="middle">LAS VEGAS</textPath>
+                        </text>
+                        <text fill="#3b3b37" font-family="Georgia, 'Times New Roman', serif" font-size="4.25" font-weight="700" letter-spacing="0.7">
+                            <textPath href="#${id}-bottom-arc" startOffset="50%" text-anchor="middle">POKER CLUB</textPath>
+                        </text>
+                    ` : ''}
+                    <text x="50" y="53" font-family="Georgia, 'Times New Roman', serif" font-size="${valueSize}" font-weight="700" fill="${conf.text}" text-anchor="middle" dominant-baseline="middle" letter-spacing="-0.6">${conf.val}</text>
+                </svg>
+            `;
+        }
+
+        // RENDER 14 CHIPS MATRIX GRID
+        function renderChipKeypadGrid() {
+            const grid = document.getElementById('chip-keypad-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            CHIP_VALUES.forEach(val => {
+                const button = document.createElement('button');
+                button.className = `chip-key group aspect-square w-full max-w-[80px] rounded-full flex flex-col items-center justify-center p-1 transition-all`;
+                button.onclick = () => addChip(val);
+                button.setAttribute('data-chip-val', val);
+                button.setAttribute('aria-label', `Tambah ${val} chip`);
+                button.innerHTML = generateChipSVG(val, 72);
+                grid.appendChild(button);
+            });
+        }
+
+        // FILTER CHIP KEYPAD DENOMINATIONS
+        function filterChipGrid(category) {
+            appState.activeFilter = category;
+            ['all', 'low', 'mid', 'high'].forEach(c => {
+                const btn = document.getElementById(`filter-${c}`);
+                if (c === category) {
+                    btn.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-[#242A23] text-[#C3A66A] border border-[#343B32]";
+                } else {
+                    btn.className = "text-[10px] px-2 py-0.5 rounded font-medium text-[#777F73] hover:text-[#F0F0E7]";
+                }
+            });
+
+            const buttons = document.querySelectorAll('#chip-keypad-grid button');
+            buttons.forEach(btn => {
+                const valKey = btn.getAttribute('data-chip-val');
+                const numVal = getNumericChipValue(valKey);
+                let show = true;
+                if (category === 'low') show = numVal <= 25;
+                else if (category === 'mid') show = numVal >= 50 && numVal <= 500;
+                else if (category === 'high') show = numVal >= 1000;
+
+                if (show) btn.classList.remove('hidden');
+                else btn.classList.add('hidden');
+            });
+        }
+
+        // SWITCH ACTIVE SEAT
+        function switchSeat(seat) {
+            appState.activeSeat = seat;
+            const seats = ['East', 'South', 'West', 'North'];
+            seats.forEach(s => {
+                const btn = document.getElementById(`seat-${s}`);
+                btn.setAttribute('aria-pressed', s === seat ? 'true' : 'false');
+                if (s === seat) {
+                    btn.className = "seat-btn flex-1 py-2 px-1 rounded-lg font-semibold text-xs flex flex-col items-center justify-center gap-0.5 transition-all bg-[#64866B] text-[#101310]";
+                } else {
+                    btn.className = "seat-btn flex-1 py-2 px-1 rounded-lg font-medium text-xs flex flex-col items-center justify-center gap-0.5 transition-all text-[#A5AA9E] hover:text-[#F0F0E7] hover:bg-[#242A23]";
+                }
+            });
+
+            renderUI();
+        }
+
+        // TARGET MODE: 'starting' VS 'hand'
+        function setTargetMode(target, silent = false) {
+            appState.targetMode = target;
+            const btnStarting = document.getElementById('target-mode-starting');
+            const btnHand = document.getElementById('target-mode-hand');
+            btnStarting.setAttribute('aria-pressed', target === 'starting' ? 'true' : 'false');
+            btnHand.setAttribute('aria-pressed', target === 'hand' ? 'true' : 'false');
+
+            if (target === 'starting') {
+                btnStarting.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-[#C3A66A] text-[#101310]";
+                btnHand.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-[#A5AA9E] hover:text-[#F0F0E7]";
+                if (!silent) showToast("Mode Tuts: Modal Chip", "Modal Chip");
+            } else {
+                btnHand.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-[#64866B] text-[#101310]";
+                btnStarting.className = "py-1.5 px-2 rounded font-bold text-xs transition-all flex items-center justify-center gap-1.5 text-[#A5AA9E] hover:text-[#F0F0E7]";
+                if (!silent) showToast("Mode Tuts: Chip di tangan", "Chip di tangan");
+            }
+            renderUI();
+        }
+
+        // TOGGLE HAND TRAY VIEW
+        function toggleHandViewMode() {
+            appState.handView = appState.handView === 'stacks' ? 'list' : 'stacks';
+            const btn = document.getElementById('btn-toggle-view');
+            if (appState.handView === 'stacks') {
+                btn.innerHTML = `<i data-lucide="layers" class="w-3 h-3 text-[#C3A66A]"></i> Mode Tumpukan`;
+            } else {
+                btn.innerHTML = `<i data-lucide="list" class="w-3 h-3 text-[#64866B]"></i> Mode Daftar`;
+            }
+            lucide.createIcons();
+            renderUI();
+        }
+
+        // ADD CHIPS USING KEYPAD
+        function addChip(valueKey) {
+            playChipSound();
+            const isStartingMode = appState.targetMode === 'starting';
+            const targetContainer = isStartingMode ? appState.startingChips : appState.players;
+            
+            if (!targetContainer[appState.activeSeat]) {
+                targetContainer[appState.activeSeat] = {};
+            }
+
+            const currentHand = targetContainer[appState.activeSeat];
+            const currentQty = currentHand[valueKey] || 0;
+            const changeQty = appState.multiplier;
+
+            currentHand[valueKey] = currentQty + changeQty;
+            if (!isStartingMode) {
+                appState.handFinalized = appState.handFinalized || {};
+                appState.handFinalized[appState.activeSeat] = true;
+            }
+            const numVal = getNumericChipValue(valueKey);
+            showToast(`+${valueKey} (x${changeQty})`, `+${(numVal * changeQty).toLocaleString('id-ID')}`);
+
+            saveState();
+            renderUI();
+        }
+
+        function markHandAsZero() {
+            if (appState.targetMode !== 'hand' || calculateSeatTotal(appState.activeSeat) > 0) return;
+            appState.players[appState.activeSeat] = {};
+            appState.handFinalized = appState.handFinalized || {};
+            appState.handFinalized[appState.activeSeat] = true;
+            saveState();
+            renderUI();
+            showToast('On Hand ditandai habis', '0 chip');
+        }
+
+        // Prepare the current name field for replacement while preserving the saved name until a new value is entered.
+        function preparePlayerNameEntry() {
+            const input = document.getElementById('active-player-name-input');
+            if (!input) return;
+            const savedName = getPlayerName(appState.activeSeat).trim();
+            if (input.value.trim() === savedName) input.value = '';
+            input.focus();
+        }
+
+        function restorePlayerNameIfEmpty() {
+            const input = document.getElementById('active-player-name-input');
+            if (input && !input.value.trim()) input.value = getPlayerName(appState.activeSeat);
+        }
+
+        function saveActivePlayerName() {
+            const input = document.getElementById('active-player-name-input');
+            if (!input) return;
+            const newName = input.value.trim();
+            if (!newName) {
+                restorePlayerNameIfEmpty();
+                showToast('Nama pemain tidak boleh kosong', 'Nama');
+                return;
+            }
+            updateActivePlayerName(newName);
+            showToast('Nama pemain berhasil disimpan', 'OK');
+        }
+
+        // UPDATE PLAYER NAME
+        function updateActivePlayerName(newName) {
+            if (!newName || !newName.trim()) return;
+            appState.playerNames[appState.activeSeat] = newName.trim();
+            saveState();
+            renderUI();
+        }
+
+        function getDefaultPlayerName(seat) {
+            return ({ East: 'Pemain 1', South: 'Pemain 2', West: 'Pemain 3', North: 'Pemain 4' })[seat] || 'Pemain';
+        }
+
+        function confirmResetAllNamesAndChips() {
+            showConfirmModal(
+                'Reset Nama & Chip Semua Pemain?',
+                'Kembalikan nama ke default dan kosongkan Modal Chip serta Chip di Tangan keempat pemain? Histori, rate, kursi aktif, mode, dan data lainnya tidak akan berubah.',
+                () => {
+                    const seats = ['East', 'South', 'West', 'North'];
+                    appState.playerNames = appState.playerNames || {};
+                    appState.startingChips = appState.startingChips || {};
+                    appState.players = appState.players || {};
+                    appState.handFinalized = appState.handFinalized || {};
+                    seats.forEach(seat => {
+                        appState.playerNames[seat] = getDefaultPlayerName(seat);
+                        appState.startingChips[seat] = {};
+                        appState.players[seat] = {};
+                        appState.handFinalized[seat] = false;
+                    });
+                    saveState();
+                    renderUI();
+                    showToast('Nama dan chip keempat pemain direset', 'Reset');
+                }
+            );
+        }
+
+        function getPlayerName(seat) {
+            return appState.playerNames[seat] || seat;
+        }
+
+        // TOAST FEEDBACK
+        let toastTimeout = null;
+        function showToast(msg, badgeText) {
+            const banner = document.getElementById('toast-banner');
+            const name = getPlayerName(appState.activeSeat);
+            document.getElementById('toast-msg').innerText = `${msg} [${name}]`;
+            document.getElementById('toast-chip-badge').innerText = badgeText;
+            
+            banner.classList.remove('hidden');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 1800);
+        }
+
+        // CALCULATE TOTAL CHIP POINTS FOR A SEAT
+        function calculateSeatTotal(seat) {
+            const hand = appState.players[seat] || {};
+            let total = 0;
+            for (const [chipKey, qty] of Object.entries(hand)) {
+                total += getNumericChipValue(chipKey) * qty;
+            }
+            return total;
+        }
+
+        function calculateSeatStartingTotal(seat) {
+            const hand = appState.startingChips[seat] || {};
+            let total = 0;
+            for (const [chipKey, qty] of Object.entries(hand)) {
+                total += getNumericChipValue(chipKey) * qty;
+            }
+            return total;
+        }
+
+        // FORMAT RUPIAH CURRENCY HELPER
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                maximumFractionDigits: 0
+            }).format(number);
+        }
+
+        function roundedCanvasRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+            if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+        }
+
+        function canvasFitText(ctx, text, x, y, maxWidth) {
+            let value = String(text);
+            while (value.length > 1 && ctx.measureText(value).width > maxWidth) value = value.slice(0, -2) + '…';
+            ctx.fillText(value, x, y);
+        }
+
+        function drawResultFace(ctx, cx, cy, radius, mood) {
+            const stroke = mood === 'happy' ? '#2F8052' : mood === 'sad' ? '#B84E49' : '#B08D4B';
+            const fill = mood === 'happy' ? '#E8F4E9' : mood === 'sad' ? '#F7ECEB' : '#F2EFE3';
+            ctx.save();
+            ctx.lineWidth = 3;
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = stroke;
+            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#26332C';
+            [-10, 10].forEach(dx => { ctx.beginPath(); ctx.arc(cx + dx, cy - 6, 2.5, 0, Math.PI * 2); ctx.fill(); });
+            ctx.strokeStyle = '#26332C'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
+            if (mood === 'happy') {
+                ctx.moveTo(cx - 11, cy + 5); ctx.quadraticCurveTo(cx, cy + 19, cx + 11, cy + 5);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(233,163,154,.65)';
+                [-19, 19].forEach(dx => { ctx.beginPath(); ctx.arc(cx + dx, cy + 4, 3, 0, Math.PI * 2); ctx.fill(); });
+            } else if (mood === 'sad') {
+                ctx.moveTo(cx - 11, cy + 13); ctx.quadraticCurveTo(cx, cy + 1, cx + 11, cy + 13); ctx.stroke();
+                [-18, 18].forEach(dx => {
+                    ctx.fillStyle = '#6BA8C7'; ctx.beginPath(); ctx.moveTo(cx + dx, cy + 3);
+                    ctx.bezierCurveTo(cx + dx - 4, cy + 10, cx + dx - 3, cy + 14, cx + dx, cy + 15);
+                    ctx.bezierCurveTo(cx + dx + 4, cy + 14, cx + dx + 4, cy + 9, cx + dx, cy + 3);
+                    ctx.fill();
+                });
+            } else {
+                ctx.moveTo(cx - 8, cy + 9); ctx.lineTo(cx + 8, cy + 9); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        async function createRecapPngBlob() {
+            const seats = ['East', 'South', 'West', 'North'];
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1080;
+            canvas.height = 1350;
+            const ctx = canvas.getContext('2d');
+            const colors = { ink: '#26332C', muted: '#657267', line: '#DCE5DC', jade: '#527560', gold: '#B08D4B', green: '#2F8052', red: '#B84E49', paper: '#F5F7F2' };
+            const rate = appState.chipRate || 1000;
+            const number = value => new Intl.NumberFormat('id-ID').format(value);
+            const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+            const seatNames = { East: 'TIMUR', South: 'SELATAN', West: 'BARAT', North: 'UTARA' };
+            const data = seats.map(seat => {
+                let starting = 0, total = 0;
+                for (const [key, qty] of Object.entries(appState.startingChips[seat] || {})) starting += getNumericChipValue(key) * qty;
+                for (const [key, qty] of Object.entries(appState.players[seat] || {})) total += getNumericChipValue(key) * qty;
+                const net = total - starting;
+                const startingReady = Object.keys(appState.startingChips[seat] || {}).length > 0;
+                const handReady = hasFinalHand(seat);
+                const ready = startingReady && handReady;
+                return { seat, name: getPlayerName(seat), starting, total, net, netRp: net * rate, ready, startingReady, handReady,
+                    label: !ready ? 'BELUM LENGKAP' : net > 0 ? 'MENANG' : net < 0 ? 'KALAH' : 'IMPAS',
+                    color: !ready ? colors.muted : net > 0 ? colors.green : net < 0 ? colors.red : colors.gold };
+            });
+            const readyCount = data.filter(player => player.ready).length;
+            const allReady = readyCount === seats.length;
+            const netTable = data.reduce((sum, player) => sum + (player.ready ? player.net : 0), 0);
+
+            ctx.fillStyle = colors.paper;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.globalAlpha = 0.12;
+            ctx.translate(540, 700); ctx.rotate(-Math.PI / 7);
+            ctx.fillStyle = '#527560'; ctx.font = '800 32px Inter, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('DIBUAT OLEH THENDRI', 0, 0);
+            ctx.restore();
+            const header = ctx.createLinearGradient(0, 0, 1080, 270);
+            header.addColorStop(0, '#20352B');
+            header.addColorStop(1, '#527560');
+            ctx.fillStyle = header;
+            ctx.fillRect(0, 0, 1080, 270);
+            ctx.globalAlpha = 0.09;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath(); ctx.arc(970, 40, 190, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(1010, 240, 105, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+
+            roundedCanvasRect(ctx, 52, 40, 54, 54, 16, '#FFFFFF');
+            ctx.fillStyle = colors.jade;
+            ctx.font = '32px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🀄', 79, 67);
+            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = '#DCE8DC'; ctx.font = '700 16px Inter, sans-serif';
+            ctx.fillText('MAHJONG EXCHANGE', 124, 61);
+            ctx.fillStyle = '#FFFFFF'; ctx.font = '700 44px Inter, sans-serif';
+            ctx.fillText('Rekap Hasil Meja', 52, 139);
+            ctx.fillStyle = '#E2EAE0'; ctx.font = '400 20px Inter, sans-serif';
+            ctx.fillText('Ringkasan permainan empat pemain', 54, 177);
+            const dateText = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+            ctx.fillStyle = '#D5E1D6'; ctx.font = '500 15px Inter, sans-serif';
+            ctx.fillText(dateText, 54, 207);
+            roundedCanvasRect(ctx, 52, 224, 390, 56, 16, '#FFFFFF');
+            ctx.fillStyle = colors.muted; ctx.font = '600 13px Inter, sans-serif'; ctx.fillText('RATE CHIP', 72, 247);
+            ctx.fillStyle = colors.ink; ctx.font = '700 18px "IBM Plex Mono", monospace';
+            ctx.fillText(`1 chip = ${money(rate)}`, 72, 269);
+
+            data.forEach((player, index) => {
+                const x = 44, y = 302 + index * 198, w = 992, h = 184;
+                roundedCanvasRect(ctx, x, y, w, h, 22, '#FFFFFF', colors.line);
+                ctx.fillStyle = colors.jade; ctx.font = '700 13px Inter, sans-serif';
+                ctx.fillText(`KURSI ${index + 1}  ·  ${seatNames[player.seat]}`, x + 26, y + 35);
+                ctx.fillStyle = colors.ink; ctx.font = '700 27px Inter, sans-serif';
+                canvasFitText(ctx, player.name, x + 26, y + 69, 510);
+                ctx.save(); ctx.globalAlpha = 0.72; ctx.fillStyle = '#718276'; ctx.font = '700 11px Inter, sans-serif';
+                ctx.fillText('DIBUAT OLEH THENDRI', x + 26, y + 96); ctx.restore();
+                roundedCanvasRect(ctx, x + w - 350, y + 18, 160, 30, 15, player.color);
+                ctx.fillStyle = '#FFFFFF'; ctx.font = '700 13px Inter, sans-serif';
+                ctx.textAlign = 'center'; ctx.fillText(player.label, x + w - 270, y + 39); ctx.textAlign = 'left';
+                ctx.fillStyle = player.color; ctx.font = '700 23px "IBM Plex Mono", monospace';
+                ctx.textAlign = 'right'; ctx.fillText(player.ready ? `${player.net > 0 ? '+' : ''}${number(player.net)} chip` : '—', x + w - 128, y + 78);
+                ctx.fillStyle = colors.muted; ctx.font = '600 15px "IBM Plex Mono", monospace';
+                ctx.textAlign = 'right'; ctx.fillText(player.ready ? `${player.netRp > 0 ? '+' : ''}${money(player.netRp)}` : '—', x + w - 128, y + 99); ctx.textAlign = 'left';
+                if (player.ready) drawResultFace(ctx, x + w - 61, y + 65, 30, player.net > 0 ? 'happy' : player.net < 0 ? 'sad' : 'neutral');
+
+                const tileY = y + 112, tileH = 56, tileW = 454;
+                [[x + 26, 'MODAL', player.starting, player.startingReady], [x + 512, 'ON HAND', player.total, player.handReady]].forEach(([tileX, label, amount, inputReady]) => {
+                    roundedCanvasRect(ctx, tileX, tileY, tileW, tileH, 12, '#F5F7F2');
+                    ctx.fillStyle = colors.muted; ctx.font = '700 11px Inter, sans-serif';
+                    ctx.fillText(label, tileX + 14, tileY + 19);
+                    ctx.fillStyle = colors.ink; ctx.font = '700 16px "IBM Plex Mono", monospace';
+                    ctx.fillText(inputReady ? `${number(amount)} chip` : '—', tileX + 14, tileY + 42);
+                    ctx.fillStyle = colors.jade; ctx.font = '600 13px "IBM Plex Mono", monospace';
+                    ctx.textAlign = 'right'; ctx.fillText(inputReady ? money(amount * rate) : 'Belum diisi', tileX + tileW - 14, tileY + 40); ctx.textAlign = 'left';
+                });
+            });
+
+            roundedCanvasRect(ctx, 44, 1118, 992, 150, 22, '#E8EFE7', colors.line);
+            ctx.fillStyle = colors.muted; ctx.font = '700 13px Inter, sans-serif';
+            ctx.fillText(allReady ? 'RINGKASAN MEJA' : 'INPUT LENGKAP', 72, 1153);
+            if (!allReady) {
+                roundedCanvasRect(ctx, 72, 1171, 245, 42, 21, '#FFFFFF');
+                ctx.fillStyle = colors.muted; ctx.font = '700 14px Inter, sans-serif';
+                ctx.fillText(`${readyCount} / 4 PEMAIN`, 91, 1198);
+                ctx.fillStyle = colors.ink; ctx.font = '600 16px Inter, sans-serif';
+                ctx.fillText('Hasil meja tampil setelah input lengkap', 346, 1198);
+                ctx.fillStyle = colors.muted; ctx.font = '500 13px Inter, sans-serif';
+                ctx.fillText('Pemain yang belum lengkap tidak dihitung dalam hasil bersih.', 72, 1238);
+            } else if (netTable === 0) {
+                roundedCanvasRect(ctx, 72, 1171, 245, 42, 21, '#DCEBDD');
+                ctx.fillStyle = colors.green; ctx.font = '700 16px Inter, sans-serif';
+                ctx.fillText('✓  MEJA SEIMBANG', 92, 1198);
+                ctx.fillStyle = colors.ink; ctx.font = '600 17px Inter, sans-serif';
+                ctx.fillText('Selisih bersih seluruh pemain: 0 chip', 346, 1198);
+            } else {
+                const diffColor = netTable > 0 ? colors.gold : colors.red;
+                roundedCanvasRect(ctx, 72, 1171, 252, 42, 21, '#FFFFFF');
+                ctx.fillStyle = diffColor; ctx.font = '700 14px Inter, sans-serif';
+                ctx.fillText('BELUM SEIMBANG', 91, 1198);
+                ctx.fillStyle = colors.ink; ctx.font = '600 17px "IBM Plex Mono", monospace';
+                ctx.fillText(`Selisih bersih: ${netTable > 0 ? '+' : ''}${number(netTable)} chip`, 346, 1198);
+            }
+            ctx.fillStyle = colors.muted; ctx.font = '500 13px Inter, sans-serif';
+            ctx.fillText(`Nilai setara ${money(netTable * rate)} · Rate ${money(rate)} per chip`, 72, 1238);
+            ctx.fillStyle = '#8B968C'; ctx.font = '500 13px Inter, sans-serif';
+            ctx.textAlign = 'center'; ctx.fillText('DIBUAT OLEH THENDRI  ·  MAHJONG EXCHANGE', 540, 1314); ctx.textAlign = 'left';
+
+            return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Gagal membuat PNG.')), 'image/png'));
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = filename;
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
+        async function downloadRecapImage() {
+            try {
+                const blob = await createRecapPngBlob();
+                const date = new Date().toISOString().slice(0, 10);
+                downloadBlob(blob, `mahjong-rekap-${date}.png`);
+            } catch (error) {
+                alert(error.message || 'PNG tidak berhasil dibuat.');
+            }
+        }
+
+        async function shareRecapImage() {
+            try {
+                const blob = await createRecapPngBlob();
+                const date = new Date().toISOString().slice(0, 10);
+                const file = new File([blob], `mahjong-rekap-${date}.png`, { type: 'image/png' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: 'Rekap Mahjong Exchange', text: 'Rekap hasil meja Mahjong Exchange.' });
+                } else {
+                    downloadBlob(blob, file.name);
+                }
+            } catch (error) {
+                if (error && error.name === 'AbortError') return;
+                try {
+                    const blob = await createRecapPngBlob();
+                    downloadBlob(blob, `mahjong-rekap-${new Date().toISOString().slice(0, 10)}.png`);
+                } catch (fallbackError) {
+                    alert(fallbackError.message || 'Tidak dapat membagikan atau mengunduh PNG.');
+                }
+            }
+        }
+
+        let lastRenderedOutcomes = null;
+
+        function renderFaceSVG(mood) {
+            const faceColor = mood === 'happy' ? '#E8F4E9' : mood === 'sad' ? '#F5E8E7' : '#F0EFE8';
+            const strokeColor = mood === 'happy' ? '#527560' : mood === 'sad' ? '#B84E49' : '#7B877D';
+            let expression = '';
+            if (mood === 'happy') {
+                expression = `<circle cx="35" cy="42" r="3.5" fill="#26332C"/><circle cx="65" cy="42" r="3.5" fill="#26332C"/><path d="M30 57 Q50 77 70 57" fill="none" stroke="#26332C" stroke-width="5" stroke-linecap="round"/><circle cx="23" cy="55" r="5" fill="#E9A39A" opacity=".55"/><circle cx="77" cy="55" r="5" fill="#E9A39A" opacity=".55"/>`;
+            } else if (mood === 'sad') {
+                expression = `<circle cx="35" cy="42" r="3.5" fill="#26332C"/><circle cx="65" cy="42" r="3.5" fill="#26332C"/><path d="M30 70 Q50 51 70 70" fill="none" stroke="#26332C" stroke-width="5" stroke-linecap="round"/>`;
+            } else {
+                expression = `<circle cx="35" cy="42" r="3.5" fill="#26332C"/><circle cx="65" cy="42" r="3.5" fill="#26332C"/><path class="face-mouth animate-draw" d="M38 64 H62" fill="none" stroke="#26332C" stroke-width="5" stroke-linecap="round"/>`;
+            }
+            const label = mood === 'happy' ? 'senang' : mood === 'sad' ? 'sedih' : 'datar';
+            return `<svg class="recap-face" viewBox="0 0 100 100" role="img" aria-label="Wajah ${label}" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="43" fill="${faceColor}" stroke="${strokeColor}" stroke-width="4"/><path d="M19 30 Q22 17 34 18" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity=".85"/>${expression}</svg>`;
+        }
+
+        // RENDER HAND TRAY & RECAP
+        function renderUI() {
+            const isStartingMode = appState.targetMode === 'starting';
+            const currentHand = isStartingMode 
+                ? (appState.startingChips[appState.activeSeat] || {}) 
+                : (appState.players[appState.activeSeat] || {});
+
+            const activeTotal = calculateSeatTotal(appState.activeSeat);
+            const activeStarting = calculateSeatStartingTotal(appState.activeSeat);
+            const rate = appState.chipRate || 1000;
+
+            document.getElementById('recap-tab-rate-val').innerText = `1 chip = ${formatRupiah(rate)}`;
+
+            const nameInput = document.getElementById('active-player-name-input');
+            if (nameInput && document.activeElement !== nameInput) {
+                nameInput.value = getPlayerName(appState.activeSeat);
+            }
+
+            const seatTagMap = { East: 'Kursi 1 (Timur)', South: 'Kursi 2 (Selatan)', West: 'Kursi 3 (Barat)', North: 'Kursi 4 (Utara)' };
+            if (document.getElementById('current-seat-tag')) {
+                document.getElementById('current-seat-tag').innerText = seatTagMap[appState.activeSeat] || appState.activeSeat;
+            }
+
+            const cardBlockStarting = document.getElementById('card-block-starting');
+            const cardBlockHand = document.getElementById('card-block-hand');
+
+
+            if (document.getElementById('display-starting-pts')) {
+                document.getElementById('display-starting-pts').innerText = `${activeStarting.toLocaleString('id-ID')} chip`;
+                document.getElementById('display-starting-rp').innerText = formatRupiah(activeStarting * rate);
+                document.getElementById('display-hand-pts').innerText = `${activeTotal.toLocaleString('id-ID')} chip`;
+                document.getElementById('display-hand-rp').innerText = formatRupiah(activeTotal * rate);
+            }
+
+            if (document.getElementById('active-hand-mode-text')) {
+                document.getElementById('active-hand-mode-text').innerText = isStartingMode ? 'Modal Chip' : 'Chip di tangan';
+            }
+            const trayTitle = document.getElementById('hand-tray-title');
+            if (trayTitle) trayTitle.innerText = isStartingMode ? 'Modal chip:' : 'Chip di tangan:';
+            const tray = document.getElementById('chips-breakdown-container');
+            if (tray) tray.setAttribute('aria-label', isStartingMode ? 'Rincian modal chip' : 'Rincian chip di tangan');
+            const zeroHandButton = document.getElementById('mark-hand-zero');
+            if (zeroHandButton) zeroHandButton.classList.toggle('hidden', isStartingMode || activeTotal > 0 || hasFinalHand(appState.activeSeat));
+
+            const copyBar = document.getElementById('copy-starting-all-bar');
+            if (copyBar) {
+                if (isStartingMode) {
+                    copyBar.classList.remove('hidden');
+                } else {
+                    copyBar.classList.add('hidden');
+                }
+            }
+
+            const seats = ['East', 'South', 'West', 'North'];
+            let netSumTable = 0;
+
+            const recapTabContainer = document.getElementById('recap-tab-players-list');
+            if (recapTabContainer) recapTabContainer.innerHTML = '';
+            const nextOutcomeSnapshot = {};
+
+            seats.forEach(s => {
+                const total = calculateSeatTotal(s);
+                const starting = calculateSeatStartingTotal(s);
+                const sHasStarting = Object.keys(appState.startingChips[s] || {}).length > 0;
+                const sHasFinal = hasFinalHand(s);
+                const resultReady = sHasStarting && sHasFinal;
+                const sNetPts = total - starting;
+                const sNetRp = sNetPts * rate;
+                const startingRp = starting * rate;
+                const name = getPlayerName(s);
+                const currentOutcome = !resultReady ? 'pending' : sNetPts > 0 ? 'win' : sNetPts < 0 ? 'loss' : 'draw';
+                if (lastRenderedOutcomes && lastRenderedOutcomes[s] !== currentOutcome && (currentOutcome === 'win' || currentOutcome === 'loss')) {
+                    playOutcomeSound(currentOutcome);
+                }
+                nextOutcomeSnapshot[s] = currentOutcome;
+
+                if (resultReady) {
+                    netSumTable += sNetPts;
+                }
+
+                if (document.getElementById(`seat-tab-name-${s}`)) {
+                    document.getElementById(`seat-tab-name-${s}`).innerText = name;
+                    
+                    const seatStatusEl = document.getElementById(`seat-status-${s}`);
+                    if (!resultReady) {
+                        seatStatusEl.className = "text-[9px] font-mono-tabular px-1.5 py-0.2 bg-[#101310] text-[#777F73] rounded font-medium";
+                        seatStatusEl.innerText = `Belum`;
+                    } else if (sNetPts > 0) {
+                        seatStatusEl.className = "text-[9px] font-mono-tabular px-1.5 py-0.2 bg-[#242A23] text-[#78B58A] rounded font-bold border border-[#343B32]";
+                        seatStatusEl.innerText = `+${sNetPts.toLocaleString('id-ID')}`;
+                    } else if (sNetPts < 0) {
+                        seatStatusEl.className = "text-[9px] font-mono-tabular px-1.5 py-0.2 bg-[#242A23] text-[#D77F79] rounded font-bold border border-[#343B32]";
+                        seatStatusEl.innerText = `${sNetPts.toLocaleString('id-ID')}`;
+                    } else {
+                        seatStatusEl.className = "text-[9px] font-mono-tabular px-1.5 py-0.2 bg-[#101310] text-[#F0F0E7] rounded font-bold";
+                        seatStatusEl.innerText = `${total.toLocaleString('id-ID')} chip`;
+                    }
+                }
+
+                if (recapTabContainer) {
+                    const card = document.createElement('div');
+                    card.className = "bg-[#121612] p-3.5 rounded-lg border border-[#343B32] flex flex-col gap-3 shadow-sm";
+                    
+                    let statusBottomHTML = '';
+                    if (!resultReady) {
+                        statusBottomHTML = '';
+                    } else if (sNetPts > 0) {
+                        statusBottomHTML = `
+                            <div class="bg-[#242A23] p-3.5 rounded-xl border border-[#343B32] text-xs font-mono-tabular flex items-center justify-between shadow-md overflow-hidden relative">
+                                <div>
+                                    <span class="text-[10px] text-[#78B58A] block font-sans font-bold uppercase tracking-wider">Menang</span>
+                                    <div class="text-[#78B58A] font-bold text-sm sm:text-base mt-0.5">+${sNetPts.toLocaleString('id-ID')} chip (+${formatRupiah(sNetRp)})</div>
+                                </div>
+                                <div class="recap-status-visual flex items-center justify-center pl-2 select-none z-10">
+                                    <div class="relative inline-block">
+                                        ${renderFaceSVG('happy').replace('recap-face', 'recap-face animate-win')}
+                                        <span class="confetti-1" aria-hidden="true">✦</span>
+                                        <span class="confetti-2" aria-hidden="true">✧</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (sNetPts < 0) {
+                        statusBottomHTML = `
+                            <div class="bg-[#242A23] p-3.5 rounded-xl border border-[#343B32] text-xs font-mono-tabular flex items-center justify-between shadow-md overflow-hidden relative">
+                                <div>
+                                    <span class="text-[10px] text-[#D77F79] block font-sans font-bold uppercase tracking-wider">Kalah</span>
+                                    <div class="text-[#D77F79] font-bold text-sm sm:text-base mt-0.5">${sNetPts.toLocaleString('id-ID')} chip (${formatRupiah(sNetRp)})</div>
+                                </div>
+                                <div class="recap-status-visual flex items-center justify-center pl-2 select-none z-10">
+                                    <div class="relative inline-block animate-cry">
+                                        ${renderFaceSVG('sad')}
+                                        <svg class="tear-1" aria-hidden="true" width="14" height="20" viewBox="0 0 14 20"><path d="M7 1 C5 5 1 9 1 13a6 6 0 0 0 12 0C13 9 9 5 7 1Z" fill="#6BA8C7" stroke="#3D7897" stroke-width="1"/></svg>
+                                        <svg class="tear-2" aria-hidden="true" width="14" height="20" viewBox="0 0 14 20"><path d="M7 1 C5 5 1 9 1 13a6 6 0 0 0 12 0C13 9 9 5 7 1Z" fill="#6BA8C7" stroke="#3D7897" stroke-width="1"/></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        statusBottomHTML = `
+                            <div class="bg-[#171B17] p-3.5 rounded-xl border border-[#343B32] text-xs font-mono-tabular flex items-center justify-between shadow-md overflow-hidden relative">
+                                <div>
+                                    <span class="text-[10px] text-[#C3A66A] block font-sans font-bold uppercase tracking-wider">Impas</span>
+                                    <div class="text-[#C3A66A] font-bold text-sm sm:text-base mt-0.5">0 chip (Rp 0)</div>
+                                </div>
+                                <div class="recap-status-visual flex items-center justify-center pl-2 select-none z-10">
+                                    ${renderFaceSVG('neutral')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between pb-2 border-b border-[#343B32]">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-[#C3A66A] bg-[#171B17] px-2 py-0.5 rounded border border-[#343B32]">${s}</span>
+                                <span class="text-xs sm:text-sm font-bold text-[#F0F0E7]">${name}</span>
+                            </div>
+                            <span class="text-[10px] font-mono-tabular text-[#A5AA9E]">Rate: ${formatRupiah(rate)}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5 text-xs font-mono-tabular">
+                            <div class="bg-[#171B17] p-2.5 rounded-lg border border-[#343B32]">
+                                <span class="text-[10px] text-[#A5AA9E] block font-sans font-semibold uppercase">Modal:</span>
+                                <div class="font-bold text-[#F0F0E7] mt-1">${starting.toLocaleString('id-ID')} chip</div>
+                                <div class="text-[11px] text-[#C3A66A] mt-0.5">${formatRupiah(startingRp)}</div>
+                            </div>
+                            <div class="bg-[#171B17] p-2.5 rounded-lg border border-[#343B32]">
+                                <span class="text-[10px] text-[#A5AA9E] block font-sans font-semibold uppercase">On Hand:</span>
+                                <div class="font-bold text-[#F0F0E7] mt-1">${sHasFinal ? `${total.toLocaleString('id-ID')} chip` : '-'}</div>
+                                <div class="text-[11px] text-[#78B58A] mt-0.5">${sHasFinal ? formatRupiah(total * rate) : 'Belum diisi'}</div>
+                            </div>
+                        </div>
+                        ${statusBottomHTML}
+                    `;
+                    recapTabContainer.appendChild(card);
+                }
+            });
+
+            const balanceBadgeTab = document.getElementById('tab-recap-table-balance');
+            const allPlayersEntered = seats.every(s => hasFinalHand(s));
+            const allStartingEntered = seats.every(s => Object.keys(appState.startingChips[s] || {}).length > 0);
+            const exportReady = allStartingEntered && allPlayersEntered;
+            ['btn-share-recap', 'btn-download-recap'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) button.disabled = !exportReady;
+            });
+            const completedActions = document.getElementById('completed-game-actions');
+            if (completedActions) completedActions.classList.toggle('hidden', !exportReady);
+            const historySaveButton = document.getElementById('btn-save-game-history');
+            const historySaveLabel = document.getElementById('btn-save-game-history-label');
+            const currentFingerprint = exportReady ? getCurrentGameFingerprint() : '';
+            const alreadyArchived = exportReady && appState.history.some(item => item && item.fingerprint === currentFingerprint);
+            if (historySaveButton) historySaveButton.disabled = !exportReady || alreadyArchived;
+            if (historySaveLabel) historySaveLabel.textContent = alreadyArchived ? 'Sudah Tersimpan di Histori' : 'Simpan Hasil ke Histori';
+            renderGameHistory();
+
+            if (balanceBadgeTab) {
+                if (!allStartingEntered) {
+                    balanceBadgeTab.className = "text-[10px] font-mono-tabular font-semibold px-2 py-1 rounded bg-[#121612] text-[#A5AA9E] border border-[#343B32]";
+                    balanceBadgeTab.innerText = "Lengkapi modal awal";
+                } else if (!allPlayersEntered) {
+                    balanceBadgeTab.className = "text-[10px] font-mono-tabular font-semibold px-2 py-1 rounded bg-[#121612] text-[#A5AA9E] border border-[#343B32]";
+                    balanceBadgeTab.innerText = "Menunggu input On Hand";
+                } else if (netSumTable === 0) {
+                    balanceBadgeTab.className = "text-[10px] font-mono-tabular font-bold px-2 py-1 rounded bg-[#242A23] text-[#78B58A] border border-[#343B32]";
+                    balanceBadgeTab.innerText = "✓ Meja Balance (0 chip)";
+                } else if (netSumTable > 0) {
+                    balanceBadgeTab.className = "text-[10px] font-mono-tabular font-bold px-2 py-1 rounded bg-[#242A23] text-[#C3A66A] border border-[#343B32]";
+                    balanceBadgeTab.innerText = `⚠️ Selisih: +${netSumTable.toLocaleString('id-ID')} chip`;
+                } else {
+                    balanceBadgeTab.className = "text-[10px] font-mono-tabular font-bold px-2 py-1 rounded bg-[#242A23] text-[#D77F79] border border-[#343B32]";
+                    balanceBadgeTab.innerText = `⚠️ Kurang: ${netSumTable.toLocaleString('id-ID')} chip`;
+                }
+            }
+
+            lastRenderedOutcomes = nextOutcomeSnapshot;
+
+            const container = document.getElementById('chips-breakdown-container');
+            if (container) {
+                container.innerHTML = '';
+
+                const activeChipEntries = Object.entries(currentHand)
+                    .map(([chipKey, qty]) => [chipKey, qty, getNumericChipValue(chipKey)])
+                    .sort((a, b) => a[2] - b[2]);
+
+                if (activeChipEntries.length === 0) {
+                    const emptyMsg = isStartingMode
+                        ? 'Belum ada chip modal. Ketuk tuts chip di bawah untuk menyusun modal awal.'
+                        : hasFinalHand(appState.activeSeat)
+                            ? 'Chip habis — On Hand sudah tercatat 0 chip.'
+                            : 'Tangan kosong. Ketuk tuts chip Vegas di bawah, atau tandai habis jika 0 chip.';
+                    container.innerHTML = `<span class="text-xs text-[#777F73] italic py-3 w-full text-center">${emptyMsg}</span>`;
+                } else if (appState.handView === 'stacks') {
+                    activeChipEntries.forEach(([chipKey, qty]) => {
+                        const stackEl = document.createElement('div');
+                        stackEl.className = "chip-stack-item flex flex-col items-center cursor-pointer group relative pt-3 px-0.5 mb-0.5 w-[64px]";
+                        stackEl.onclick = () => removeSpecificChip(chipKey);
+                        stackEl.setAttribute("role", "button");
+                        stackEl.setAttribute("tabindex", "0");
+                        stackEl.setAttribute("aria-label", `Kurangi 1 chip ${chipKey}, tersisa ${qty}`);
+                        stackEl.onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); removeSpecificChip(chipKey); } };
+                        stackEl.title = `Ketuk untuk mengurangi 1 chip ${chipKey}`;
+
+                        let chipsStackHTML = '';
+                        const visibleStackCount = Math.min(qty, 5);
+                        for (let i = 0; i < visibleStackCount; i++) {
+                            chipsStackHTML += `
+                                <div class="absolute" style="bottom: ${i * 3.5}px; z-index: ${i}">
+                                    ${generateChipSVG(chipKey, 42)}
+                                </div>
+                            `;
+                        }
+
+                        stackEl.innerHTML = `
+                            <div class="w-12 h-14 relative flex items-end justify-center mb-1">
+                                ${chipsStackHTML}
+                            </div>
+                            <span class="text-[9px] font-mono-tabular font-bold text-[#C3A66A] bg-[#101310] px-1.5 py-0.5 rounded border border-[#343B32] shadow-sm z-20">
+                                x${qty}
+                            </span>
+                        `;
+                        container.appendChild(stackEl);
+                    });
+                } else {
+                    activeChipEntries.forEach(([chipKey, qty]) => {
+                        const badge = document.createElement('div');
+                        badge.className = "flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#121612] border border-[#343B32] text-xs font-mono-tabular font-semibold my-0.5";
+                        badge.innerHTML = `
+                            <div class="w-5 h-5 flex items-center justify-center">
+                                ${generateChipSVG(chipKey, 22)}
+                            </div>
+                            <span class="text-[#F0F0E7]">${chipKey}</span>
+                            <span class="bg-[#171B17] text-[#C3A66A] px-1 py-0.2 rounded text-[10px] font-bold border border-[#343B32]">x${qty}</span>
+                            <button aria-label="Kurangi satu chip ${chipKey}" onclick="removeSpecificChip('${chipKey}')" class="ml-0.5 text-[#A5AA9E] hover:text-[#D77F79] text-sm font-bold min-w-[44px] min-h-[44px]">
+                                &times;
+                            </button>
+                        `;
+                        container.appendChild(badge);
+                    });
+                }
+            }
+
+            lucide.createIcons();
+        }
+
+        function removeSpecificChip(chipKey) {
+            const isStartingMode = appState.targetMode === 'starting';
+            const targetContainer = isStartingMode ? appState.startingChips : appState.players;
+            const currentHand = targetContainer[appState.activeSeat];
+            if (!isStartingMode) {
+                appState.handFinalized = appState.handFinalized || {};
+                appState.handFinalized[appState.activeSeat] = true;
+            }
+
+            if (currentHand[chipKey] > 1) {
+                currentHand[chipKey] -= 1;
+            } else {
+                delete currentHand[chipKey];
+            }
+            playChipSound();
+            saveState();
+            renderUI();
+        }
+
+        function copyStartingToAllPlayers() {
+            const activeStartingHand = appState.startingChips[appState.activeSeat] || {};
+            const seats = ['East', 'South', 'West', 'North'];
+            
+            showConfirmModal("Salin Modal Chip", `Salin susunan chip modal dari ${getPlayerName(appState.activeSeat)} ke SEMUA 4 pemain?`, () => {
+                seats.forEach(s => {
+                    appState.startingChips[s] = JSON.parse(JSON.stringify(activeStartingHand));
+                });
+                playChipSound();
+                saveState();
+                renderUI();
+                showToast("Modal chip disalin ke semua pemain", "Copied All");
+            });
+        }
+
+        function openSettingsModal() {
+            document.getElementById('setting-chip-rate-input').value = appState.chipRate || 1000;
+            document.getElementById('modal-settings').classList.remove('hidden');
+            // Keep focus in the user gesture so mobile browsers open the numeric keypad.
+            document.getElementById('setting-chip-rate-input').focus();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('modal-settings').classList.add('hidden');
+            document.querySelector('button[aria-label="Atur nilai rate chip"]').focus();
+        }
+
+        function setChipRatePreset(val) {
+            document.getElementById('setting-chip-rate-input').value = val;
+        }
+
+        function saveSettingsModal() {
+            const rateVal = parseInt(document.getElementById('setting-chip-rate-input').value);
+            if (!isNaN(rateVal) && rateVal > 0) {
+                appState.chipRate = rateVal;
+            }
+            saveState();
+            renderUI();
+            closeSettingsModal();
+            showToast(`Rate Chip: 1 chip = ${formatRupiah(appState.chipRate)}`, "Rate Set");
+        }
+
+        let pendingConfirmAction = null;
+        let confirmReturnFocus = null;
+
+        function showConfirmModal(title, msg, onConfirm) {
+            confirmReturnFocus = document.activeElement;
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = msg;
+            pendingConfirmAction = onConfirm;
+            document.getElementById('modal-confirm').classList.remove('hidden');
+
+            document.getElementById('btn-confirm-act').onclick = () => {
+                if (pendingConfirmAction) pendingConfirmAction();
+                closeConfirmModal(true);
+            };
+            document.querySelector('#modal-confirm button').focus();
+        }
+
+        function closeConfirmModal(confirmed) {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            pendingConfirmAction = null;
+            const returnFocus = confirmReturnFocus;
+            confirmReturnFocus = null;
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen && !welcomeScreen.classList.contains('hidden')) {
+                document.getElementById('welcome-start').focus();
+            } else if (returnFocus && typeof returnFocus.focus === 'function' && returnFocus.offsetParent !== null) {
+                returnFocus.focus();
+            } else {
+                const historyTitle = document.getElementById('game-history-title');
+                if (historyTitle && historyTitle.offsetParent !== null) historyTitle.focus();
+                else document.getElementById('tab-btn-calc').focus();
+            }
+        }
+
+        document.addEventListener('keydown', event => {
+            const dialogs = ['modal-confirm', 'modal-settings', 'welcome-screen']
+                .map(id => document.getElementById(id))
+                .filter(el => el && !el.classList.contains('hidden'));
+            const dialog = dialogs[0];
+            if (!dialog) return;
+            if (event.key === 'Escape') {
+                if (dialog.id === 'modal-confirm') closeConfirmModal(false);
+                else if (dialog.id === 'modal-settings') closeSettingsModal();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusables = Array.from(dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+                .filter(el => el.offsetParent !== null);
+            if (!focusables.length) return;
+            const first = focusables[0], last = focusables[focusables.length - 1];
+            if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+                event.preventDefault(); first.focus();
+            }
+        });
+
+        function getCurrentGameFingerprint() {
+            const seats = ['East', 'South', 'West', 'North'];
+            const sortedHand = hand => Object.fromEntries(Object.entries(hand || {}).sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true })));
+            return JSON.stringify({
+                rate: appState.chipRate || 1000,
+                players: seats.map(seat => ({
+                    seat,
+                    name: getPlayerName(seat),
+                    starting: sortedHand(appState.startingChips[seat]),
+                    hand: sortedHand(appState.players[seat])
+                }))
+            });
+        }
+
+        function isCurrentGameComplete() {
+            const seats = ['East', 'South', 'West', 'North'];
+            return seats.every(seat => Object.keys(appState.startingChips[seat] || {}).length > 0 && hasFinalHand(seat));
+        }
+
+        function createCurrentGameSnapshot() {
+            const rate = appState.chipRate || 1000;
+            const players = ['East', 'South', 'West', 'North'].map(seat => {
+                const starting = calculateSeatStartingTotal(seat);
+                const final = calculateSeatTotal(seat);
+                return {
+                    seat,
+                    name: getPlayerName(seat),
+                    startingChips: { ...(appState.startingChips[seat] || {}) },
+                    finalChips: { ...(appState.players[seat] || {}) },
+                    startingPoints: starting,
+                    finalPoints: final,
+                    netPoints: final - starting,
+                    netRupiah: (final - starting) * rate
+                };
+            });
+            return {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                fingerprint: getCurrentGameFingerprint(),
+                savedAt: new Date().toISOString(),
+                chipRate: rate,
+                tableNet: players.reduce((sum, player) => sum + player.netPoints, 0),
+                players
+            };
+        }
+
+        function archiveCurrentGame() {
+            if (!isCurrentGameComplete()) return false;
+            appState.history = Array.isArray(appState.history) ? appState.history : [];
+            const snapshot = createCurrentGameSnapshot();
+            if (appState.history.some(item => item && item.fingerprint === snapshot.fingerprint)) return false;
+            appState.history.unshift(snapshot);
+            appState.history = appState.history.slice(0, 30);
+            saveState();
+            return true;
+        }
+
+        function saveCurrentGameToHistory() {
+            const saved = archiveCurrentGame();
+            renderUI();
+            const feedback = document.getElementById('game-history-feedback');
+            if (feedback) feedback.textContent = saved ? 'Hasil berhasil disimpan ke histori.' : 'Hasil ini sudah ada di histori.';
+        }
+
+        function confirmStartNewGame() {
+            if (!isCurrentGameComplete()) return;
+            showConfirmModal(
+                'Simpan & Mulai Permainan Baru',
+                'Hasil permainan ini akan disimpan ke histori. Chip modal dan chip akhir ronde ini akan dikosongkan; nama pemain, rate, dan histori tetap tersimpan.',
+                () => {
+                    archiveCurrentGame();
+                    appState.players = { East: {}, South: {}, West: {}, North: {} };
+                    appState.handFinalized = { East: false, South: false, West: false, North: false };
+                    appState.startingChips = { East: {}, South: {}, West: {}, North: {} };
+                    appState.activeSeat = 'East';
+                    setTargetMode('starting', true);
+                    appState.mainTab = 'calc';
+                    saveState();
+                    switchMainTab('calc');
+                    speakWelcomeGreeting();
+                    showToast('Histori tersimpan; ronde baru siap dimulai', 'Game Baru');
+                }
+            );
+        }
+
+        function renderGameHistory() {
+            const list = document.getElementById('game-history-list');
+            const count = document.getElementById('game-history-count');
+            if (!list || !count) return;
+            const history = Array.isArray(appState.history) ? appState.history : [];
+            count.textContent = `${history.length} ${history.length === 1 ? 'permainan' : 'permainan'}`;
+            const clearButton = document.getElementById('btn-clear-game-history');
+            if (clearButton) clearButton.classList.toggle('hidden', history.length === 0);
+            list.innerHTML = '';
+            if (!history.length) {
+                const empty = document.createElement('p');
+                empty.className = 'text-xs text-[#657267] p-3 rounded-lg bg-[#F7F9F5] border border-[#DCE5DC]';
+                empty.textContent = 'Belum ada hasil tersimpan. Setelah semua input lengkap, simpan hasil dari panel Rekap.';
+                list.appendChild(empty);
+                return;
+            }
+            history.forEach((game, index) => {
+                const article = document.createElement('article');
+                article.className = 'p-3 rounded-xl bg-[#F7F9F5] border border-[#DCE5DC]';
+                const header = document.createElement('div');
+                header.className = 'flex items-start justify-between gap-2';
+                const title = document.createElement('h3');
+                title.className = 'text-sm font-bold text-[#26332C]';
+                const savedDate = new Date(game.savedAt || Date.now());
+                const dateLabel = Number.isNaN(savedDate.getTime()) ? 'Tanggal tidak tersedia' : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(savedDate);
+                title.textContent = `Permainan ${history.length - index} · ${dateLabel}`;
+                const rate = document.createElement('span');
+                rate.className = 'text-xs text-[#657267] text-right';
+                rate.textContent = `1 chip = ${formatRupiah(Number(game.chipRate) || 1000)}`;
+                const headerActions = document.createElement('div');
+                headerActions.className = 'flex items-center gap-2 flex-shrink-0';
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'min-h-[38px] px-2.5 py-1.5 rounded-lg border border-[#E4B7B4] bg-white hover:bg-[#FFF3F2] text-[#A53D39] font-bold text-xs';
+                deleteButton.textContent = 'Hapus';
+                deleteButton.setAttribute('aria-label', `Hapus catatan Permainan ${history.length - index}`);
+                deleteButton.addEventListener('click', () => confirmDeleteHistoryEntry(index));
+                headerActions.append(rate, deleteButton);
+                header.append(title, headerActions);
+                article.appendChild(header);
+
+                const players = Array.isArray(game.players) ? game.players : [];
+                const summary = document.createElement('div');
+                summary.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3';
+                players.forEach(player => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-[#DCE5DC]';
+                    const name = document.createElement('span');
+                    name.className = 'text-xs font-semibold text-[#26332C]';
+                    name.textContent = `${player.seat || ''} · ${player.name || 'Pemain'}`;
+                    const net = document.createElement('span');
+                    net.className = 'text-xs font-mono-tabular font-bold';
+                    net.style.color = Number(player.netPoints) > 0 ? '#2F8052' : Number(player.netPoints) < 0 ? '#B84E49' : '#657267';
+                    const points = Number(player.netPoints) || 0;
+                    net.textContent = `${points > 0 ? '+' : ''}${points.toLocaleString('id-ID')} chip · ${formatRupiah(Number(player.netRupiah) || 0)}`;
+                    row.append(name, net);
+                    summary.appendChild(row);
+                });
+                article.appendChild(summary);
+
+                const details = document.createElement('details');
+                details.className = 'mt-2 text-xs text-[#657267]';
+                const summaryLabel = document.createElement('summary');
+                summaryLabel.className = 'cursor-pointer font-semibold py-1';
+                summaryLabel.textContent = 'Lihat modal dan chip akhir';
+                details.appendChild(summaryLabel);
+                const detailsList = document.createElement('div');
+                detailsList.className = 'space-y-1 mt-1';
+                players.forEach(player => {
+                    const line = document.createElement('p');
+                    const handText = chips => Object.entries(chips || {}).map(([chip, qty]) => `${chip} × ${qty}`).join(', ') || '0 chip';
+                    line.textContent = `${player.name || player.seat}: Modal ${handText(player.startingChips)} · Akhir ${handText(player.finalChips)}`;
+                    detailsList.appendChild(line);
+                });
+                details.appendChild(detailsList);
+                article.appendChild(details);
+                list.appendChild(article);
+            });
+        }
+
+        function confirmDeleteHistoryEntry(index) {
+            const history = Array.isArray(appState.history) ? appState.history : [];
+            const game = history[index];
+            if (!game) return;
+            const savedDate = new Date(game.savedAt || Date.now());
+            const dateLabel = Number.isNaN(savedDate.getTime())
+                ? 'tanggal tidak diketahui'
+                : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(savedDate);
+            showConfirmModal(
+                'Hapus Histori Permainan?',
+                `Hapus catatan Permainan ${history.length - index} (${dateLabel})? Data ronde aktif tidak akan terpengaruh.`,
+                () => {
+                    appState.history.splice(index, 1);
+                    saveState();
+                    renderUI();
+                    showToast('Catatan permainan dihapus dari histori', 'Histori');
+                }
+            );
+        }
+
+        function confirmClearGameHistory() {
+            const count = Array.isArray(appState.history) ? appState.history.length : 0;
+            if (!count) return;
+            showConfirmModal(
+                'Hapus Semua Histori?',
+                `Hapus semua ${count} catatan histori permainan? Ronde yang sedang berjalan, nama pemain, dan rate tidak akan dihapus.`,
+                () => {
+                    appState.history = [];
+                    saveState();
+                    renderUI();
+                    showToast('Semua histori permainan dihapus', 'Histori');
+                }
+            );
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('mahjong_exchange_state_v7', JSON.stringify(appState));
+            } catch (e) {}
+        }
+
+        function loadSavedState() {
+            try {
+                const saved = localStorage.getItem('mahjong_exchange_state_v7');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    appState = { ...appState, ...parsed };
+                }
+                if (!Array.isArray(appState.history)) appState.history = [];
+            } catch (e) {
+                appState.history = Array.isArray(appState.history) ? appState.history : [];
+            }
+        }
+    </script>
+</body>
+</html>
