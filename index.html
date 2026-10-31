@@ -83,7 +83,7 @@ function showRoomForm(which){$("room-home").classList.add("hidden");$("room-form
 document.querySelectorAll("[data-room-action]").forEach(function(b){b.addEventListener("click",function(){showRoomForm(b.dataset.roomAction);});});
 function playRise(){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var ctx=playRise.ctx||(playRise.ctx=new C());if(ctx.state==="suspended")ctx.resume();var now=ctx.currentTime;[392,523.25,659.25,783.99,1046.5].forEach(function(freq,i){var o=ctx.createOscillator(),g=ctx.createGain(),t=now+i*.075;o.type="sine";o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(freq*1.12,t+.12);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.065,t+.015);g.gain.exponentialRampToValueAtTime(.0001,t+.19);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.2);});}catch(e){}}
 $("welcomeContinue").addEventListener("click",function(){playRise();$("landingWelcome").classList.add("hidden");$("roleMenu").classList.remove("hidden");});
-document.querySelectorAll("[data-entry-role]").forEach(function(b){b.addEventListener("click",function(){playRise();$("roleMenu").classList.add("hidden");$("appShell").style.display="block";showTab("room");showRoomForm(b.dataset.entryRole);});});
+document.querySelectorAll("[data-entry-role]").forEach(function(b){b.addEventListener("click",function(){playRise();var destinations={create:"./host.html",join:"./player.html",viewer:"./viewer.html"};var target=destinations[b.dataset.entryRole];if(target)window.location.assign(target);});});
 $("back-room-home").addEventListener("click",showRoomHome);
 
 var guestStarting=false;
