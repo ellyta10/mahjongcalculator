@@ -68,7 +68,7 @@ function renderChipBreakdown(p){
 }
 const fmt=n=>new Intl.NumberFormat('id-ID').format(Number(n)||0),rp=n=>'Rp'+fmt(n);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let activeCode='',remoteStamp='',pollHandle=null,currentState=null,soundEnabled=false,audioContext=null,lastHistoryCount=0,currentRoomMode='';
+let activeCode='',remoteStamp='',pollHandle=null,currentState=null,soundEnabled=false,audioContext=null,lastHistoryCount=0,currentRoomMode='',demoPreview=false;
 const $=id=>document.getElementById(id);
 function hint(message,isError=false){$('joinHint').textContent=message;$('joinHint').classList.toggle('error',isError)}
 function setSync(ok,label){$('syncLabel').textContent=label;$('liveDot').classList.toggle('off',!ok)}
@@ -95,7 +95,7 @@ function showRoomStatus(mode,playAnimation=false){
   expired:{kicker:'MAHJONG NIGHT · SESSION EXPIRED',title:'ROOM EXPIRED',subtitle:'RESET OTOMATIS · 2 JAM',copy:'Room tidak memiliki aktivitas selama 2 jam dan telah di-reset otomatis. Host perlu membuat room baru untuk memulai pertandingan berikutnya.',meta:'ROOM '+activeCode+' · SESSION EXPIRED'}
  };
  const item=config[mode]||config.manual;
- $('cinematicKicker').textContent=item.kicker;$('cinematicTitle').textContent=item.title;$('cinematicSubtitle').textContent=item.subtitle;$('cinematicCopy').textContent=item.copy;$('cinematicMeta').textContent=item.meta;
+ $('cinematicKicker').textContent=item.kicker;$('cinematicTitle').textContent=item.title;$('cinematicSubtitle').textContent=item.subtitle;$('cinematicCopy').textContent=item.copy;$('cinematicMeta').textContent=(demoPreview?'DEMO PREVIEW · ':'')+item.meta;
  $('roomStatusScreen').dataset.mode=mode;$('roomStatusScreen').classList.remove('hidden');
  $('liveRoomContent').classList.toggle('hidden',mode!=='finished');
  if(playAnimation){
@@ -137,6 +137,24 @@ $('roomCode').addEventListener('input',e=>{e.target.value=e.target.value.toUpper
 function playChime(){if(!soundEnabled)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime;[660,880,1175].forEach((freq,i)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=now+i*.11;osc.type='sine';osc.frequency.setValueAtTime(freq,t);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.09,t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+.32);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.34);});}catch(e){}}
 function playTransferMoment(h){const from=String(h.from||'Pemain'),to=String(h.to||'Pemain');$('momentEmoji').textContent='🪙✨🎉';$('momentTitle').textContent=from+' ➜ '+to;$('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);if(a)a.classList.add('sending');if(b){b.classList.add('receiving');const face=b.querySelector('.mood');if(face){face.textContent='🤑';face.dataset.bonus='true';setTimeout(()=>{if(face.isConnected){const player=(currentState?.players||[]).find(p=>String(p.name||'')===to);if(player)face.textContent=(function(){const list=currentState.players||[],sum=list.reduce((v,p)=>v+(Number(p.chips)||0),0),avg=list.length?sum/list.length:0,n=Number(player.chips)||0;if(player.bankrupt)return '😭';if(n<=0)return '😴';if(avg>0&&n>=avg*1.25)return '🤑';if(avg>0&&n>=avg*.75)return '😐';if(avg>0&&n>=avg*.4)return '😟';return '😟';})();delete face.dataset.bonus;}},2400);}}setTimeout(()=>{a?.classList.remove('sending');b?.classList.remove('receiving');},1700);if(a&&b){const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect(),x=ar.left+ar.width/2,y=ar.top+ar.height/2,dx=br.left+br.width/2-x,dy=br.top+br.height/2-y;for(let i=0;i<4;i++){const el=document.createElement('span');el.className='flying-chip';el.textContent=i%2?'🪙':'💰';el.style.left=(x+(Math.random()*18-9))+'px';el.style.top=(y+(Math.random()*18-9))+'px';el.style.setProperty('--dx',(dx+(Math.random()*35-17))+'px');el.style.setProperty('--dy',(dy+(Math.random()*35-17))+'px');el.style.animationDelay=(i*.07)+'s';$('exchangeFx').appendChild(el);setTimeout(()=>el.remove(),1250);}}playChime();}
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
+function startDemoPreview(){
+ const mode=new URLSearchParams(location.search).get('demo');
+ if(!['finished','manual','expired'].includes(mode))return;
+ demoPreview=true;activeCode='MHJ-DEMO';currentRoomMode=mode;
+ $('joinPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');
+ if(mode==='finished'){
+  const sample={room:'Mahjong Night · Demo',code:activeCode,started:true,finished:true,rate:1000,host:'Host Demo',players:[
+   {seat:'East',name:'Alex',chips:1250,chipCounts:{1:10,5:10,10:10,100:10},joined:true},
+   {seat:'South',name:'Morgan',chips:920,chipCounts:{1:20,10:12,50:16},joined:true},
+   {seat:'West',name:'Jamie',chips:680,chipCounts:{2:20,10:10,50:9},joined:true},
+   {seat:'North',name:'Taylor',chips:1150,chipCounts:{5:10,10:10,50:21},joined:true}
+  ],history:[]};
+  currentState=sample;render(sample,false);
+ }
+ showRoomStatus(mode,true);setSync(true,'DEMO PREVIEW');
+ $('lastUpdate').textContent='Tampilan simulasi · data asli tidak diubah';
+}
+startDemoPreview();
 $('changeRoom').addEventListener('click',()=>{if(pollHandle)clearInterval(pollHandle);pollHandle=null;activeCode='';remoteStamp='';currentState=null;currentRoomMode='';hideRoomStatus();$('dashboard').classList.add('hidden');$('joinPanel').classList.remove('hidden');$('joinBtn').disabled=false;$('joinBtn').textContent='MASUK';hint('Masukkan kode room yang ingin dilihat.');$('roomCode').value='';});
 </script><script id="mahjong-mobile-zoom-lock">
 (function () {
