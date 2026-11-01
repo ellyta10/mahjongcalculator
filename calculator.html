@@ -2181,6 +2181,18 @@
   var clear=document.getElementById("room-exchange-clear"),save=document.getElementById("room-save-starting");
   var ownBalance=document.getElementById("room-exchange-own-balance");
   if(mode==="setup"&&roomContext.is_host){
+   // Host setup: force the calculator tab and keypad into view, then place the keypad
+   // immediately below the Room controls so it cannot be buried below the long calculator layout.
+   var calculatorView=document.getElementById("view-calculator");
+   var keypadGrid=document.getElementById("chip-keypad-grid");
+   var keypadSection=keypadGrid&&keypadGrid.closest("section");
+   if(calculatorView)calculatorView.classList.remove("hidden");
+   if(keypadSection&&panel.parentNode===calculatorView)calculatorView.insertBefore(keypadSection,panel.nextSibling);
+   if(keypadGrid){
+    if(!keypadGrid.children.length&&typeof window.renderChipKeypadGrid==="function")window.renderChipKeypadGrid();
+    keypadGrid.style.display="grid";
+    keypadGrid.querySelectorAll("button").forEach(function(button){button.disabled=false;});
+   }
    title.textContent="Atur modal chip awal";
    instruction.textContent="Pilih posisi East, South, West, atau North. Tekan tuts chip untuk mengisi modal masing-masing pemain.";
    label.textContent="Modal chip posisi aktif";
