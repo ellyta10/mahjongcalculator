@@ -2,7 +2,7 @@
 <html lang="id" class="h-full bg-[#101310] text-[#F0F0E7]">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <title>Mahjong Exchange Pro - Hand Chip Calculator</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,6 +39,8 @@
         }
     </script>
     <style>
+html{touch-action:pan-x pan-y;}
+
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
         
         body {
@@ -2323,5 +2325,22 @@
 })();
 </script>
 
+<script id="mahjong-mobile-zoom-lock">
+(function () {
+  var preventMultiTouch = function (event) {
+    if (event.touches && event.touches.length > 1) event.preventDefault();
+  };
+  document.addEventListener('touchstart', preventMultiTouch, { passive: false });
+  document.addEventListener('gesturestart', function (event) { event.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturechange', function (event) { event.preventDefault(); }, { passive: false });
+  document.addEventListener('gestureend', function (event) { event.preventDefault(); }, { passive: false });
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (event) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) event.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+})();
+</script>
 </body>
 </html>
