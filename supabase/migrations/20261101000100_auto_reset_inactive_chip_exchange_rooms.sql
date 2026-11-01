@@ -58,6 +58,27 @@ begin
 end;
 $function$;
 
+-- Prevent an old browser tab from reviving a room after the scheduled reset.
+create or replace function public.prevent_reset_room_revival()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $guard$
+begin
+  if coalesce((old.state->>'started')::boolean, false) = false
+     and coalesce(old.state->>'code', '') = ''
+     and coalesce((new.state->>'started')::boolean, false) = true then
+    raise exception 'Room sudah di-reset karena tidak aktif. Buat room baru dengan kode baru.';
+  end if;
+  return new;
+end;
+$guard$;
+
+drop trigger if exists prevent_reset_room_revival on public.chip_exchange_preview_rooms;
+create trigger prevent_reset_room_revival
+before update on public.chip_exchange_preview_rooms
+for each row execute function public.prevent_reset_room_revival();
+
 revoke all on function public.reset_inactive_chip_exchange_rooms() from public;
 revoke all on function public.reset_inactive_chip_exchange_rooms() from anon;
 revoke all on function public.reset_inactive_chip_exchange_rooms() from authenticated;
