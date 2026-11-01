@@ -179,19 +179,30 @@ function playTransferMoment(h){const from=String(h.from||'Pemain'),to=String(h.t
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
 function startDemoPreview(){
  const mode=new URLSearchParams(location.search).get('demo');
- if(!['finished','manual','expired'].includes(mode))return;
+ const valid=['finished','manual','expired','chip-states','receive','send'];
+ if(!valid.includes(mode))return;
  demoPreview=true;activeCode='MHJ-DEMO';currentRoomMode=mode;
  $('joinPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');
+ const sample={room:'Mahjong Night · Demo',code:activeCode,started:true,finished:mode==='finished',rate:1000,host:'Host Demo',players:[
+  {seat:'East',name:'Alex',chips:1500,initialChips:1000,chipCounts:{1:10,5:10,10:10,100:10},joined:true},
+  {seat:'South',name:'Morgan',chips:1000,initialChips:1000,chipCounts:{1:20,10:12,50:16},joined:true},
+  {seat:'West',name:'Jamie',chips:450,initialChips:1000,chipCounts:{2:20,10:10,50:9},joined:true},
+  {seat:'North',name:'Taylor',chips:0,initialChips:1000,chipCounts:{},bankrupt:true,joined:true}
+ ],history:[]};
  if(mode==='finished'){
-  const sample={room:'Mahjong Night · Demo',code:activeCode,started:true,finished:true,rate:1000,host:'Host Demo',players:[
-   {seat:'East',name:'Alex',chips:1250,chipCounts:{1:10,5:10,10:10,100:10},joined:true},
-   {seat:'South',name:'Morgan',chips:920,chipCounts:{1:20,10:12,50:16},joined:true},
-   {seat:'West',name:'Jamie',chips:680,chipCounts:{2:20,10:10,50:9},joined:true},
-   {seat:'North',name:'Taylor',chips:1150,chipCounts:{5:10,10:10,50:21},joined:true}
-  ],history:[]};
-  currentState=sample;render(sample,false);
+  sample.players[0].chips=1250;sample.players[2].chips=680;sample.players[3].chips=1150;sample.players[3].bankrupt=false;
  }
- showRoomStatus(mode,true);setSync(true,'DEMO PREVIEW');
+ currentState=sample;render(sample,false);
+ if(['manual','expired','finished'].includes(mode))showRoomStatus(mode,true);
+ else{
+  $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='chip-states'?'Perbandingan saldo dengan modal awal':'Simulasi transaksi chip';
+  $('momentText').textContent=mode==='chip-states'?'Profit · Netral · Loss · Chip habis':'Animasi transaksi hanya simulasi, tidak mengubah saldo';
+  if(mode==='receive'||mode==='send'){
+   const transfer=mode==='receive'?{from:'Alex',to:'Morgan',amount:250,chipCounts:{100:2},time:'DEMO'}:{from:'Morgan',to:'Jamie',amount:250,chipCounts:{100:2},time:'DEMO'};
+   playTransferMoment(transfer);
+  }
+ }
+ setSync(true,'DEMO PREVIEW');
  $('lastUpdate').textContent='Tampilan simulasi · data asli tidak diubah';
 }
 startDemoPreview();
