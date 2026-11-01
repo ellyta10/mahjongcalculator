@@ -184,7 +184,7 @@ function playTransferMoment(h){
   const br=b.querySelector('.mood')?.getBoundingClientRect()||b.getBoundingClientRect();
   const x=ar.left+ar.width/2-27,y=ar.top+ar.height/2-33;
   const dx=(br.left+br.width/2-27)-x,dy=(br.top+br.height/2-33)-y;
-  const tile=document.createElement('span');tile.className='mahjong-flight';tile.innerHTML=mascotSvg('neutral');
+  const tile=document.createElement('span');tile.className='mahjong-flight';tile.innerHTML=document.querySelector('.mood-person svg')?.outerHTML||'';
   tile.style.left=x+'px';tile.style.top=y+'px';tile.style.setProperty('--dx',dx+'px');tile.style.setProperty('--dy',dy+'px');
   $('exchangeFx').appendChild(tile);setTimeout(()=>tile.remove(),1400);
  }
