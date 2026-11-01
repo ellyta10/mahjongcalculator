@@ -37,6 +37,46 @@ html{touch-action:pan-x pan-y;}
 #liveRoomContent{transition:opacity .45s ease,transform .45s ease}
 @media(max-width:520px){.cinematic-status{min-height:275px;padding:27px 16px}.cinematic-orbit{width:150px;height:150px}.cinematic-tile{font-size:19px}.cinematic-copy{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.cinematic-status.cinematic-play:before,.cinematic-status.cinematic-play .cinematic-orbit,.cinematic-status.cinematic-play .cinematic-mark,.cinematic-status.cinematic-play .cinematic-tile{animation:none!important;opacity:1}}
+
+/* Player balance animations: compare current chips with each player's starting capital */
+.mood-player{position:relative;overflow:hidden}
+.mood{position:relative;display:block;width:clamp(92px,11vw,116px);height:clamp(92px,11vw,116px);margin:0 auto 12px;border-radius:24px;background:radial-gradient(circle at 50% 35%,#fffdf6,#e8e9e2 72%);box-shadow:inset 0 2px 9px #aeb6aa55;overflow:hidden;flex-shrink:0}
+.mood-glow{position:absolute;inset:9px;border-radius:50%;opacity:.55;filter:blur(10px);background:#d4b46b;animation:moodGlow 2.8s ease-in-out infinite}
+.mood-chip{position:absolute;left:50%;width:48px;height:48px;border-radius:50%;border:5px dashed #fff4d1;background:radial-gradient(circle at 35% 28%,#fff4b5,#d7a83f 55%,#76501d);box-shadow:0 5px 9px #1d261c45,inset 0 0 0 3px #f9e5a5;transform:translateX(-50%)}
+.chip-back{top:18px;margin-left:-14px;transform:translateX(-50%) rotate(-17deg)}
+.chip-mid{top:29px;margin-left:1px;transform:translateX(-50%) rotate(12deg)}
+.chip-front{top:39px;margin-left:14px;transform:translateX(-50%) rotate(-8deg)}
+.mood-state{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:1000;letter-spacing:.12em;color:#4d4636}
+.mood-spark{position:absolute;color:#c69b43;font-size:17px;opacity:0;animation:sparkle 2s ease-in-out infinite}
+.spark-a{left:12px;top:13px}.spark-b{right:12px;top:23px;animation-delay:.7s}
+.mood-profit .mood-glow{background:#e7bd4e;opacity:.85}
+.mood-profit .mood-chip{animation:profitStack 1.8s ease-in-out infinite}
+.mood-profit .mood-spark{opacity:1}
+.mood-neutral .mood-chip{animation:neutralStack 3s ease-in-out infinite}
+.mood-loss .mood-glow{background:#c18a56;opacity:.38}
+.mood-loss .mood-chip{filter:saturate(.65) brightness(.88);animation:lossStack 2.6s ease-in-out infinite}
+.mood-loss .chip-back{top:29px}.mood-loss .chip-mid{top:39px}.mood-loss .chip-front{top:49px}
+.mood-bankrupt .mood-glow{background:#7c8581;opacity:.2}
+.mood-bankrupt .mood-chip{width:38px;height:38px;top:43px;background:radial-gradient(circle at 35% 25%,#c6c9c4,#747b77 65%,#3e4642);border-color:#d8dcd5;filter:grayscale(1);animation:bankruptDrop 2.2s ease-in-out infinite}
+.mood-bankrupt .chip-back,.mood-bankrupt .chip-mid{display:none}
+.mood-bankrupt .mood-state{color:#8b4740}
+@keyframes moodGlow{50%{transform:scale(1.12);opacity:.8}}
+@keyframes sparkle{0%,100%{transform:scale(.4) rotate(0);opacity:0}45%{transform:scale(1.15) rotate(70deg);opacity:1}}
+@keyframes profitStack{50%{transform:translate(-50%,-7px) rotate(8deg)}}
+@keyframes neutralStack{50%{transform:translate(-50%,-2px) rotate(2deg)}}
+@keyframes lossStack{50%{transform:translate(-50%,4px) rotate(-5deg)}}
+@keyframes bankruptDrop{0%,100%{transform:translate(-50%,0) rotate(0);opacity:1}55%{transform:translate(-50%,9px) rotate(35deg);opacity:.45}}
+.player.sending:after,.player.receiving:after{position:absolute;top:9px;left:50%;z-index:5;transform:translateX(-50%);padding:6px 10px;border-radius:20px;font-size:9px;font-weight:1000;letter-spacing:.14em;box-shadow:0 4px 14px #1113;animation:transactionBadge .95s ease both}
+.player.sending:after{content:'CHIP KELUAR';background:#f5e4c5;color:#7d4d1b}
+.player.receiving:after{content:'CHIP MASUK';background:#dff3e3;color:#28623b}
+.player.sending .mood-chip{animation:chipSend .7s ease-in-out 2}
+.player.receiving .mood-chip{animation:chipReceive .7s ease-in-out 2}
+@keyframes transactionBadge{0%{opacity:0;top:18px}25%{opacity:1;top:9px}80%{opacity:1}100%{opacity:0;top:0}}
+@keyframes chipSend{50%{transform:translate(-50%,-18px) rotate(35deg);opacity:.55}}
+@keyframes chipReceive{0%{transform:translate(-50%,-20px) scale(.7);opacity:.3}65%{transform:translate(-50%,2px) scale(1.12);opacity:1}}
+.flying-chip{width:42px;height:42px;font-size:0;filter:drop-shadow(0 5px 6px #10181066)}
+.flying-chip svg{display:block;width:100%;height:100%}
+@media(prefers-reduced-motion:reduce){.mood-glow,.mood-chip,.mood-spark,.player.sending:after,.player.receiving:after{animation:none!important}}
 </style></head><body><main class="wrap">
 <header class="top"><div><div class="brand">🀄 MAHJONG ROOM</div><div class="muted" style="font-size:10px">Chip Exchange · Spectator View</div></div><div style="display:flex;align-items:center;gap:7px"><a href="index.html" style="text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;color:white;border-radius:24px;padding:8px 11px;font-size:10px;font-weight:900">← MENU AWAL</a><button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">🔇 SUARA OFF</button><span class="tag">VIEWER · READ ONLY</span></div></header>
 <section id="joinPanel" class="join"><div class="eyebrow">SPECTATOR ACCESS</div><h1>Masuk ke Viewer Room</h1><p class="muted">Masukkan kode room dari Host untuk melihat saldo pemain dan pertukaran chip secara live.</p><form id="joinForm"><div class="field"><input id="roomCode" maxlength="8" placeholder="Masukkan kode room aktif" autocomplete="off" aria-label="Kode room" required><button id="joinBtn" type="submit">MASUK</button></div></form><div id="joinHint" class="hint" role="status">Viewer hanya dapat melihat data. Tidak bisa mengubah room.</div></section>
@@ -77,10 +117,10 @@ function render(s,animate=false){
  $('room').textContent=s.room||'Mahjong Night';$('roomCodeLabel').textContent='ROOM '+activeCode;
  $('rate').textContent='1 CHIP = '+rp(s.rate)+' PER CHIP';
  $('status').textContent=s.finished?'● GAME SELESAI':'● ROOM AKTIF';
- const totalBalance=players.reduce((sum,p)=>sum+(Number(p.chips)||0),0),averageBalance=players.length?totalBalance/players.length:0;const moodFor=p=>{const chips=Number(p.chips)||0;if(p.bankrupt)return '😭';if(chips<=0)return '😴';if(averageBalance>0&&chips>=averageBalance*1.25)return '🤑';if(averageBalance>0&&chips>=averageBalance*.75)return '😐';if(averageBalance>0&&chips>=averageBalance*.4)return '😟';return '😟';};const max=Math.max(1,...players.map(p=>Number(p.chips)||0));
+ const moodFor=p=>{const chips=Math.max(0,Number(p.chips)||0),initial=Math.max(0,Number(p.initialChips)||0);if(p.bankrupt||chips===0)return 'bankrupt';if(chips>initial)return 'profit';if(chips<initial)return 'loss';return 'neutral';};const moodLabel={profit:'PROFIT',neutral:'NETRAL',loss:'LOSS',bankrupt:'CHIP HABIS'};const renderMood=p=>{const mood=moodFor(p);return '<div class="mood mood-'+mood+'" role="img" aria-label="'+moodLabel[mood]+'"><span class="mood-glow"></span><span class="mood-chip chip-back"></span><span class="mood-chip chip-mid"></span><span class="mood-chip chip-front"></span><span class="mood-spark spark-a">✦</span><span class="mood-spark spark-b">✧</span><span class="mood-state">'+moodLabel[mood]+'</span></div>';};const max=Math.max(1,...players.map(p=>Number(p.chips)||0));
  $('players').innerHTML=players.map((p,i)=>{
   const bankrupt=!!p.bankrupt,joined=!!p.joined||(s.hostJoins&&Number(s.hostSeat)===i);
-  return '<article class="player" data-player="'+esc(p.name||'')+'"><span class="mood" aria-label="Kondisi saldo">'+moodFor(p)+'</span><small>'+esc(p.seat||['East','South','West','North'][i]||'SEAT')+' SEAT</small><b>'+esc(p.name||'Belum ada pemain')+'</b><div class="chips">'+fmt(p.chips)+' <span style="font-size:10px">CHIPS</span></div>'+renderChipBreakdown(p)+'<div class="rupiah">'+rp((Number(p.chips)||0)*(Number(s.rate)||0))+'</div><div class="seatline"><i style="width:'+Math.max(2,(Number(p.chips)||0)/max*100)+'%"></i></div><span class="statepill '+(bankrupt?'out':'')+'">'+(bankrupt?'BANGKRUT':(joined?'JOINED':'WAITING'))+'</span></article>';
+  const mood=moodFor(p);return '<article class="player mood-player mood-'+mood+'" data-player="'+esc(p.name||'')+'"><span class="transaction-flash" aria-hidden="true"></span>'+renderMood(p)+'<small>'+esc(p.seat||['East','South','West','North'][i]||'SEAT')+' SEAT</small><b>'+esc(p.name||'Belum ada pemain')+'</b><div class="chips">'+fmt(p.chips)+' <span style="font-size:10px">CHIPS</span></div>'+renderChipBreakdown(p)+'<div class="rupiah">'+rp((Number(p.chips)||0)*(Number(s.rate)||0))+'</div><div class="seatline"><i style="width:'+Math.max(2,(Number(p.chips)||0)/max*100)+'%"></i></div><span class="statepill '+(bankrupt?'out':'')+'">'+(bankrupt?'BANGKRUT':(joined?'JOINED':'WAITING'))+'</span></article>';
  }).join('');
  const total=players.reduce((a,p)=>a+(Number(p.chips)||0),0),history=Array.isArray(s.history)?s.history:[];
  $('totalChips').textContent=fmt(total);$('totalValue').textContent=rp(total*(Number(s.rate)||0));
@@ -135,7 +175,7 @@ async function enterRoom(code){
 $('joinForm').addEventListener('submit',e=>{e.preventDefault();const code=$('roomCode').value.trim().toUpperCase();if(!/^MHJ-[0-9]{4}$/.test(code)){hint('Format kode tidak valid. Contoh: MHJ-2188.',true);return;}enterRoom(code);});
 $('roomCode').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');});
 function playChime(){if(!soundEnabled)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime;[660,880,1175].forEach((freq,i)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=now+i*.11;osc.type='sine';osc.frequency.setValueAtTime(freq,t);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.09,t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+.32);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.34);});}catch(e){}}
-function playTransferMoment(h){const from=String(h.from||'Pemain'),to=String(h.to||'Pemain');$('momentEmoji').textContent='🪙✨🎉';$('momentTitle').textContent=from+' ➜ '+to;$('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);if(a)a.classList.add('sending');if(b){b.classList.add('receiving');const face=b.querySelector('.mood');if(face){face.textContent='🤑';face.dataset.bonus='true';setTimeout(()=>{if(face.isConnected){const player=(currentState?.players||[]).find(p=>String(p.name||'')===to);if(player)face.textContent=(function(){const list=currentState.players||[],sum=list.reduce((v,p)=>v+(Number(p.chips)||0),0),avg=list.length?sum/list.length:0,n=Number(player.chips)||0;if(player.bankrupt)return '😭';if(n<=0)return '😴';if(avg>0&&n>=avg*1.25)return '🤑';if(avg>0&&n>=avg*.75)return '😐';if(avg>0&&n>=avg*.4)return '😟';return '😟';})();delete face.dataset.bonus;}},2400);}}setTimeout(()=>{a?.classList.remove('sending');b?.classList.remove('receiving');},1700);if(a&&b){const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect(),x=ar.left+ar.width/2,y=ar.top+ar.height/2,dx=br.left+br.width/2-x,dy=br.top+br.height/2-y;for(let i=0;i<4;i++){const el=document.createElement('span');el.className='flying-chip';el.textContent=i%2?'🪙':'💰';el.style.left=(x+(Math.random()*18-9))+'px';el.style.top=(y+(Math.random()*18-9))+'px';el.style.setProperty('--dx',(dx+(Math.random()*35-17))+'px');el.style.setProperty('--dy',(dy+(Math.random()*35-17))+'px');el.style.animationDelay=(i*.07)+'s';$('exchangeFx').appendChild(el);setTimeout(()=>el.remove(),1250);}}playChime();}
+function playTransferMoment(h){const from=String(h.from||'Pemain'),to=String(h.to||'Pemain');$('momentEmoji').textContent='🪙✨🎉';$('momentTitle').textContent=from+' ➜ '+to;$('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);if(a)a.classList.add('sending');if(b)b.classList.add('receiving');setTimeout(()=>{a?.classList.remove('sending');b?.classList.remove('receiving');},1700);if(a&&b){const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect(),x=ar.left+ar.width/2,y=ar.top+ar.height/2,dx=br.left+br.width/2-x,dy=br.top+br.height/2-y;const denominations=Object.keys(h.chipCounts||{}).filter(v=>Number(h.chipCounts[v])>0);const chipKey=denominations[0]?(Number(denominations[0])>=1000?(Number(denominations[0])/1000)+'K':String(denominations[0])):'100';for(let i=0;i<4;i++){const el=document.createElement('span');el.className='flying-chip';el.innerHTML=generateChipSVG(chipKey,42);el.style.left=(x+(Math.random()*18-9))+'px';el.style.top=(y+(Math.random()*18-9))+'px';el.style.setProperty('--dx',(dx+(Math.random()*35-17))+'px');el.style.setProperty('--dy',(dy+(Math.random()*35-17))+'px');el.style.animationDelay=(i*.07)+'s';$('exchangeFx').appendChild(el);setTimeout(()=>el.remove(),1250);}}playChime();}
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
 function startDemoPreview(){
  const mode=new URLSearchParams(location.search).get('demo');
