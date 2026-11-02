@@ -86,6 +86,25 @@ html{touch-action:pan-x pan-y;}
 .mood-state{color:#f3d99c!important;text-shadow:0 1px 4px #000}
 .mahjong-flight{width:92px!important;height:104px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important;display:grid!important;place-items:center!important}
 .flight-mascot{display:block;width:100%;height:100%;background-image:url('https://mahjongcalculator-gqxiljdpw-ellyta.vercel.app/mascots.webp');background-repeat:no-repeat;background-size:300% 200%;background-position:0 0;mix-blend-mode:screen;filter:drop-shadow(0 5px 7px #0009)}
+
+/* Real chip transfer animation: denomination chips travel between player seats */
+.player{transition:border-color .25s,box-shadow .25s}
+.player.event-send .mood-person{animation:eventSad .95s ease-in-out both!important}
+.player.event-receive .mood-person{animation:eventHappy 1.05s cubic-bezier(.2,.8,.2,1) both!important}
+.player.event-send .mood-state:after{content:' · MELEPAS CHIP'}
+.player.event-receive .mood-state:after{content:' · MENERIMA CHIP'}
+.player.event-send{border-color:#d69b62;box-shadow:0 0 0 3px #d69b6228,0 10px 24px #0e291b25}
+.player.event-receive{border-color:#6aa77a;box-shadow:0 0 0 3px #6aa77a30,0 10px 24px #0e291b25}
+.player.event-bankrupt .mood-person{animation:bankruptDrop 1.15s ease-in forwards!important}
+.player.event-bankrupt .mood:after{content:'💧';position:absolute;right:12px;top:12px;font-size:19px;animation:tearDrop .8s ease-in-out infinite}
+.chip-flight{position:fixed;z-index:120;left:0;top:0;width:42px;height:42px;pointer-events:none;filter:drop-shadow(0 5px 5px #0007);animation:realChipFlight 1.05s cubic-bezier(.18,.72,.22,1) forwards}
+.chip-flight svg{width:100%;height:100%;display:block}
+@keyframes realChipFlight{0%{opacity:0;transform:translate(0,0) scale(.45) rotate(-25deg)}12%{opacity:1}58%{opacity:1;transform:translate(calc(var(--dx)*.58),calc(var(--dy)*.58 - 65px)) scale(1.18) rotate(210deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.82) rotate(420deg)}}
+@keyframes eventSad{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(9px) rotate(-8deg)}70%{transform:translateY(5px) rotate(5deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes eventHappy{0%{transform:translateY(0) scale(1)}28%{transform:translateY(-19px) scale(1.08)}55%{transform:translateY(-7px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+@keyframes bankruptDrop{0%{transform:translateY(0) rotate(0)}45%{transform:translateY(17px) rotate(7deg)}100%{transform:translateY(22px) rotate(0)}}
+@keyframes tearDrop{0%,100%{opacity:0;transform:translateY(-3px)}45%{opacity:1}80%{opacity:.8;transform:translateY(7px)}}
+@media(prefers-reduced-motion:reduce){.chip-flight,.player.event-send .mood-person,.player.event-receive .mood-person,.player.event-bankrupt .mood-person{animation:none!important}.chip-flight{opacity:0}}
 </style></head><body><main class="wrap">
 <header class="top"><div><div class="brand">🀄 MAHJONG ROOM</div><div class="muted" style="font-size:10px">Chip Exchange · Spectator View</div></div><div style="display:flex;align-items:center;gap:7px"><a href="index.html" style="text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;color:white;border-radius:24px;padding:8px 11px;font-size:10px;font-weight:900">← MENU AWAL</a><button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">🔇 SUARA OFF</button><span class="tag">VIEWER · READ ONLY</span></div></header>
 <section id="joinPanel" class="join"><div class="eyebrow">SPECTATOR ACCESS</div><h1>Masuk ke Viewer Room</h1><p class="muted">Masukkan kode room dari Host untuk melihat saldo pemain dan pertukaran chip secara live.</p><form id="joinForm"><div class="field"><input id="roomCode" maxlength="8" placeholder="Masukkan kode room aktif" autocomplete="off" aria-label="Kode room" required><button id="joinBtn" type="submit">MASUK</button></div></form><div id="joinHint" class="hint" role="status">Viewer hanya dapat melihat data. Tidak bisa mengubah room.</div></section>
@@ -117,7 +136,7 @@ function renderChipBreakdown(p){
 }
 const fmt=n=>new Intl.NumberFormat('id-ID').format(Number(n)||0),rp=n=>'Rp'+fmt(n);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let activeCode='',remoteStamp='',pollHandle=null,currentState=null,soundEnabled=false,audioContext=null,lastHistoryCount=0,currentRoomMode='',demoPreview=false;
+let activeCode='',remoteStamp='',pollHandle=null,currentState=null,soundEnabled=false,audioContext=null,lastHistoryCount=0,currentRoomMode='',demoPreview=false,lastPlayerBalances=new Map();
 const $=id=>document.getElementById(id);
 function hint(message,isError=false){$('joinHint').textContent=message;$('joinHint').classList.toggle('error',isError)}
 function setSync(ok,label){$('syncLabel').textContent=label;$('liveDot').classList.toggle('off',!ok)}
@@ -134,6 +153,7 @@ function render(s,animate=false){
  const total=players.reduce((a,p)=>a+(Number(p.chips)||0),0),history=Array.isArray(s.history)?s.history:[];
  $('totalChips').textContent=fmt(total);$('totalValue').textContent=rp(total*(Number(s.rate)||0));
  if(animate&&history.length>lastHistoryCount&&history.length)playTransferMoment(history[history.length-1]);
+ if(animate)detectPlayerEvents(players);
  lastHistoryCount=history.length;
  $('lastUpdate').textContent='Update terakhir: '+new Date().toLocaleTimeString('id-ID');
 }
@@ -184,23 +204,45 @@ async function enterRoom(code){
 $('joinForm').addEventListener('submit',e=>{e.preventDefault();const code=$('roomCode').value.trim().toUpperCase();if(!/^MHJ-[0-9]{4}$/.test(code)){hint('Format kode tidak valid. Contoh: MHJ-2188.',true);return;}enterRoom(code);});
 $('roomCode').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');});
 function playChime(){if(!soundEnabled)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime;[660,880,1175].forEach((freq,i)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=now+i*.11;osc.type='sine';osc.frequency.setValueAtTime(freq,t);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.09,t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+.32);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.34);});}catch(e){}}
+function detectPlayerEvents(players){
+ const next=new Map(players.map(p=>[String(p.name||''),Number(p.chips)||0]));
+ players.forEach(p=>{
+  const name=String(p.name||''),before=lastPlayerBalances.get(name),after=Number(p.chips)||0;
+  if(before!==undefined&&after<before&&after===0&&p.bankrupt)triggerPlayerEvent(name,'bankrupt');
+ });
+ lastPlayerBalances=next;
+}
+function triggerPlayerEvent(name,type){
+ const card=[...document.querySelectorAll('.player')].find(el=>el.dataset.player===name);
+ if(!card)return;
+ card.classList.remove('event-send','event-receive','event-bankrupt');void card.offsetWidth;
+ card.classList.add(type==='send'?'event-send':type==='receive'?'event-receive':'event-bankrupt');
+ if(type!=='bankrupt')setTimeout(()=>card.classList.remove('event-'+type),1250);
+}
+function chipKeysForTransfer(h){
+ const counts=h.chipCounts&&typeof h.chipCounts==='object'?Object.entries(h.chipCounts).filter(([v,q])=>Number(q)>0&&Number(v)>0):[];
+ if(counts.length)return counts.flatMap(([v,q])=>Array(Math.min(8,Math.max(1,Number(q)||1))).fill(Number(v)));
+ const amount=Math.max(1,Number(h.amount)||1);return [amount>=100?100:amount>=50?50:amount>=25?25:amount>=10?10:amount>=5?5:1];
+}
+function flyRealChips(fromCard,toCard,h){
+ if(!fromCard||!toCard)return;
+ const a=fromCard.querySelector('.mood')?.getBoundingClientRect()||fromCard.getBoundingClientRect();
+ const b=toCard.querySelector('.mood')?.getBoundingClientRect()||toCard.getBoundingClientRect();
+ const startX=a.left+a.width/2-21,startY=a.top+a.height/2-21,dx=b.left+b.width/2-21-startX,dy=b.top+b.height/2-21-startY;
+ const keys=chipKeysForTransfer(h);
+ keys.forEach((value,i)=>{
+  const chip=document.createElement('span');chip.className='chip-flight';chip.innerHTML=generateChipSVG(value>=1000?(value/1000)+'K':String(value),42);
+  chip.style.left=startX+(i%3-1)*9+'px';chip.style.top=startY+'px';chip.style.setProperty('--dx',(dx+(i%3-1)*8)+'px');chip.style.setProperty('--dy',(dy+(i%3-1)*8)+'px');chip.style.animationDelay=(i*.075)+'s';
+  $('exchangeFx').appendChild(chip);setTimeout(()=>chip.remove(),1250+i*75);
+ });
+}
 function playTransferMoment(h){
  const from=String(h.from||'Pemain'),to=String(h.to||'Pemain');
- $('momentEmoji').textContent='🀄';$('momentTitle').textContent=from+' ➜ '+to;
+ $('momentEmoji').textContent='🪙';$('momentTitle').textContent=from+' ➜ '+to;
  $('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');
  const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);
- if(a)a.classList.add('sending');if(b)b.classList.add('receiving');
- setTimeout(()=>{a?.classList.remove('sending');b?.classList.remove('receiving');},1500);
- if(a&&b){
-  const ar=a.querySelector('.mood')?.getBoundingClientRect()||a.getBoundingClientRect();
-  const br=b.querySelector('.mood')?.getBoundingClientRect()||b.getBoundingClientRect();
-  const x=ar.left+ar.width/2-27,y=ar.top+ar.height/2-33;
-  const dx=(br.left+br.width/2-27)-x,dy=(br.top+br.height/2-33)-y;
-  const tile=document.createElement('span');tile.className='mahjong-flight';tile.innerHTML='<span class="flight-mascot" aria-hidden="true"></span>';
-  tile.style.left=x+'px';tile.style.top=y+'px';tile.style.setProperty('--dx',dx+'px');tile.style.setProperty('--dy',dy+'px');
-  $('exchangeFx').appendChild(tile);setTimeout(()=>tile.remove(),1400);
- }
- playChime();
+ if(a)triggerPlayerEvent(from,'send');if(b)triggerPlayerEvent(to,'receive');
+ flyRealChips(a,b,h);playChime();
 }
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
 function startDemoPreview(){
@@ -218,13 +260,13 @@ function startDemoPreview(){
  if(mode==='finished'){
   sample.players[0].chips=1250;sample.players[2].chips=680;sample.players[3].chips=1150;sample.players[3].bankrupt=false;
  }
- currentState=sample;render(sample,false);
+ currentState=sample;lastPlayerBalances=new Map(sample.players.map(p=>[String(p.name||''),Number(p.chips)||0]));render(sample,false);
  if(['manual','expired','finished'].includes(mode))showRoomStatus(mode,true);
  else{
   $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='chip-states'?'Perbandingan saldo dengan modal awal':'Simulasi transaksi chip';
   $('momentText').textContent=mode==='chip-states'?'Profit · Netral · Loss · Chip habis':'Animasi transaksi hanya simulasi, tidak mengubah saldo';
   if(mode==='receive'||mode==='send'){
-   const transfer=mode==='receive'?{from:'Alex',to:'Morgan',amount:250,chipCounts:{100:2},time:'DEMO'}:{from:'Morgan',to:'Jamie',amount:250,chipCounts:{100:2},time:'DEMO'};
+   const transfer=mode==='receive'?{from:'Alex',to:'Morgan',amount:250,chipCounts:{100:2,25:2},time:'DEMO'}:{from:'Morgan',to:'Jamie',amount:250,chipCounts:{100:2,25:2},time:'DEMO'};
    playTransferMoment(transfer);
   }
  }
