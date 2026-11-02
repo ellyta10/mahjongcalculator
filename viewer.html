@@ -38,67 +38,44 @@ html{touch-action:pan-x pan-y;}
 @media(max-width:520px){.cinematic-status{min-height:275px;padding:27px 16px}.cinematic-orbit{width:150px;height:150px}.cinematic-tile{font-size:19px}.cinematic-copy{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.cinematic-status.cinematic-play:before,.cinematic-status.cinematic-play .cinematic-orbit,.cinematic-status.cinematic-play .cinematic-mark,.cinematic-status.cinematic-play .cinematic-tile{animation:none!important;opacity:1}}
 
-/* Mahjong character tiles: movement-based animations, no idle wobble */
+/* Static 3D tile faces; event feedback animates light/effects, never idle wobble */
 .mood-player{position:relative;overflow:hidden}
-.mood{position:relative;display:grid;place-items:center;animation:none!important;width:clamp(92px,11vw,116px);height:clamp(106px,12vw,128px);margin:0 auto 12px;border:2px solid #d7c28e;border-radius:13px;background:linear-gradient(145deg,#fffdf3 0%,#f3e8c9 48%,#d8c18b 100%);box-shadow:0 7px 15px #101a1230,inset 0 0 0 4px #fff9e8;overflow:hidden;flex-shrink:0}
-.mood:before{content:"";position:absolute;inset:6px;border:1px solid #b69b62;border-radius:8px;opacity:.6}
-.moment-emoji{animation:none!important}.player.sending,.player.receiving{animation:none!important}.mood-person{position:relative;z-index:1;display:block;font-size:clamp(48px,6vw,66px);line-height:1;filter:drop-shadow(0 4px 2px #493b2530);transform:translateY(0)}
-.mood-state{position:absolute;z-index:2;bottom:7px;left:0;right:0;text-align:center;font-size:8px;font-weight:1000;letter-spacing:.12em;color:#57472a}
-.mood-spark{position:absolute;z-index:2;color:#b78b35;font-size:17px;opacity:0}
-.mood-profit .mood-person{animation:personVictory 2.7s cubic-bezier(.2,.7,.25,1) infinite}
-.mood-profit .mood-spark{animation:personSpark 2.7s ease-out infinite}
-.mood-profit .spark-a{left:10px;top:13px}.mood-profit .spark-b{right:10px;top:22px;animation-delay:.35s}
-.mood-neutral .mood-person{animation:personStep 3.4s ease-in-out infinite}
-.mood-loss{background:linear-gradient(145deg,#f8f5ed,#e5d7c9 70%,#cbb6a2);border-color:#b99a7d}
-.mood-loss .mood-person{filter:grayscale(.25);animation:personDown 3s ease-in-out infinite}
-.mood-loss .mood-state{color:#80553e}
-.mood-bankrupt{background:linear-gradient(145deg,#eeefeb,#d5d9d3 70%,#aeb5ad);border-color:#a5aaa1}
-.mood-bankrupt .mood-person{filter:grayscale(.8);animation:personFall 3.2s ease-in infinite}
-.mood-bankrupt .mood-state{color:#8b4740}
-.player.sending,.player.receiving{position:relative}
-.player.sending .mood{border-color:#d2a34c;box-shadow:0 0 0 4px #d2a34c30,0 9px 20px #101a1230}
-.player.receiving .mood{border-color:#6b9d70;box-shadow:0 0 0 4px #6b9d7030,0 9px 20px #101a1230}
-.player.sending:after,.player.receiving:after{position:absolute;top:9px;left:50%;z-index:5;transform:translateX(-50%);padding:6px 10px;border-radius:20px;font-size:9px;font-weight:1000;letter-spacing:.12em;box-shadow:0 4px 14px #1113;animation:transactionLabel 1.35s ease both}
-.player.sending:after{content:'TILE KELUAR';background:#f5e4c5;color:#7d4d1b}
-.player.receiving:after{content:'TILE MASUK';background:#dff3e3;color:#28623b}
-#exchangeFx{position:fixed;inset:0;z-index:99;pointer-events:none;overflow:hidden}
-.mahjong-flight{position:fixed;z-index:100;left:0;top:0;width:54px;height:66px;display:grid;place-items:center;border:2px solid #c9ad70;border-radius:9px;background:linear-gradient(145deg,#fffdf1,#e7d6aa);box-shadow:0 8px 20px #10181055,inset 0 0 0 3px #fff9e8;font-size:37px;line-height:1;animation:tileJourney 1.25s cubic-bezier(.18,.72,.22,1) forwards}
-.mahjong-flight:after{content:"";position:absolute;inset:4px;border:1px solid #b89c60;border-radius:5px;pointer-events:none}
-@keyframes personVictory{0%,100%{transform:translateY(0)}35%{transform:translateY(-25px)}65%{transform:translateY(-9px)}}
-@keyframes personStep{0%,100%{transform:translateX(-7px)}25%{transform:translateX(7px)}50%{transform:translateX(0) translateY(-5px)}75%{transform:translateX(-3px)}}
-@keyframes personDown{0%,100%{transform:translateY(0)}45%{transform:translateY(15px)}70%{transform:translateY(8px)}}
-@keyframes personFall{0%{transform:translateY(-24px) rotate(0);opacity:1}55%{transform:translateY(12px) rotate(12deg);opacity:.85}100%{transform:translateY(36px) rotate(24deg);opacity:.18}}
-@keyframes personSpark{0%,100%{opacity:0;transform:translateY(8px) scale(.5)}35%{opacity:1;transform:translateY(-9px) scale(1.1)}75%{opacity:.5;transform:translateY(-17px) scale(.8)}}
-@keyframes transactionLabel{0%{opacity:0;top:18px}20%,75%{opacity:1;top:9px}100%{opacity:0;top:0}}
-@keyframes tileJourney{0%{opacity:0;transform:translate(0,0) scale(.45) rotate(-20deg)}12%{opacity:1}55%{opacity:1;transform:translate(calc(var(--dx)*.55),calc(var(--dy)*.55 - 70px)) scale(1.12) rotate(18deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.78) rotate(0deg)}}
-@media(prefers-reduced-motion:reduce){.mood-person,.mood-spark,.player.sending:after,.player.receiving:after,.mahjong-flight{animation:none!important}.mahjong-flight{opacity:0}}
-
-.mood-person{width:78%;height:84%;display:grid;place-items:center;transform-origin:50% 85%}.mood-person svg{display:block;width:100%;height:100%;overflow:visible}.mood-profit .mood-person{animation:personVictory 2.7s cubic-bezier(.2,.7,.25,1) infinite}.mood-neutral .mood-person{animation:personStep 3.4s ease-in-out infinite}.mood-loss .mood-person{animation:personDown 3s ease-in-out infinite}.mood-bankrupt .mood-person{animation:personFall 3.2s ease-in infinite}.mahjong-flight{font-size:0}.mahjong-flight svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px #493b2530)}
-
-.mood{background:linear-gradient(145deg,#17130e,#080807)!important;border-color:#c79c4d!important;box-shadow:0 7px 15px #101a1230,inset 0 0 0 1px #f6d994!important}
-.mood:before{border-color:#d6ad62!important;opacity:.55}
-.mood-person{width:100%!important;height:100%!important;display:grid!important;place-items:center!important;background:none!important;mix-blend-mode:normal!important;filter:drop-shadow(0 3px 5px #0008)!important}
-.mood-person svg{width:88%;height:92%;display:block;overflow:visible}
-.mood-state{color:#f3d99c!important;text-shadow:0 1px 4px #000}
-
-/* Real chip transfer animation: denomination chips travel between player seats */
+.mood{position:relative;isolation:isolate;display:grid;place-items:center;width:clamp(92px,11vw,116px);height:clamp(108px,12vw,132px);margin:0 auto 12px;border:0;border-radius:15px;background:transparent;box-shadow:none;overflow:visible;flex-shrink:0;animation:none!important}
+.mood:before{content:"";display:none;position:absolute;z-index:0;inset:3px;border:2px solid transparent;border-radius:21px;pointer-events:none}
+.mood-person{position:relative;z-index:1;display:grid;place-items:center;width:100%;height:100%;line-height:1;filter:drop-shadow(0 6px 5px #101a1240)}
+.mood-person svg{display:block;width:100%;height:100%;overflow:visible}
+.tile-depth{fill:#9b783b;stroke:#6e5429;stroke-width:1.5}
+.tile-front{stroke:#b78d43;stroke-width:2}
+.tile-inner{stroke:#d4bd7a;stroke-width:1.5}
+.tile-ornament{fill:none;stroke:#b78d43;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tile-eye,.tile-brow,.tile-mouth,.tile-bankrupt-eye{fill:none;stroke:#34291f;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.tile-eye-fill{fill:#34291f}
+.tile-tear{fill:#69bde6;stroke:#f1fbff;stroke-width:1.5}
+.tile-tear-glint{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;opacity:.9}
+.tile-bankrupt-eye{stroke:#735950;stroke-width:4.5}
+.tile-bankrupt-mouth{fill:#735950}
+.tile-crack{fill:none;stroke:#a34e43;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:54;stroke-dashoffset:0;opacity:.72}
 .player{transition:border-color .25s,box-shadow .25s}
-.player.event-send .mood-person{animation:eventSad .95s ease-in-out both!important}
-.player.event-receive .mood-person{animation:eventHappy 1.05s cubic-bezier(.2,.8,.2,1) both!important}
-.player.event-send .mood-state:after{content:' · MELEPAS CHIP'}
-.player.event-receive .mood-state:after{content:' · MENERIMA CHIP'}
-.player.event-send{border-color:#d69b62;box-shadow:0 0 0 3px #d69b6228,0 10px 24px #0e291b25}
-.player.event-receive{border-color:#6aa77a;box-shadow:0 0 0 3px #6aa77a30,0 10px 24px #0e291b25}
-.player.event-bankrupt .mood-person{animation:bankruptDrop 1.15s ease-in forwards!important}
-.player.event-bankrupt .mood:after{content:'💧';position:absolute;right:12px;top:12px;font-size:19px;animation:tearDrop .8s ease-in-out infinite}
+.player.sending,.player.receiving{position:relative;animation:none!important}
+.player.sending .mood,.player.receiving .mood{border-color:transparent}
+.player.event-send,.player.sending{border-color:#d69b62;box-shadow:0 0 0 3px #d69b6228,0 10px 24px #0e291b25}
+.player.event-receive,.player.receiving{border-color:#6aa77a;box-shadow:0 0 0 3px #6aa77a30,0 10px 24px #0e291b25}
+.player.event-send .mood:before{display:block;border-color:#d5a14b;border-style:dashed;animation:sendHalo 1.05s ease-out both}
+.player.event-receive .mood:before{display:block;border-color:#5da978;animation:receiveHalo 1.05s ease-out both}
+.player.event-send .mood-person svg{animation:sendGleam 1s ease-out both}
+.player.event-receive .mood-person svg{animation:receiveGleam 1s ease-out both}
+.player.event-bankrupt .mood-person svg{animation:bankruptFlash 1.25s ease-out both}
+.player.event-bankrupt .tile-crack{animation:crackReveal 1.05s ease-out both}
 .chip-flight{position:fixed;z-index:120;left:0;top:0;width:42px;height:42px;pointer-events:none;filter:drop-shadow(0 5px 5px #0007);animation:realChipFlight 1.05s cubic-bezier(.18,.72,.22,1) forwards}
 .chip-flight svg{width:100%;height:100%;display:block}
+@keyframes receiveHalo{0%{transform:scale(.78);opacity:0}28%{opacity:.9}100%{transform:scale(1.17);opacity:0}}
+@keyframes sendHalo{0%{transform:scale(1.14);opacity:0}25%{opacity:.85}100%{transform:scale(.84);opacity:0}}
+@keyframes receiveGleam{0%,100%{filter:drop-shadow(0 0 0 #63bd7a00)}38%{filter:drop-shadow(0 0 12px #51b976cc) brightness(1.08)}}
+@keyframes sendGleam{0%,100%{filter:drop-shadow(0 0 0 #dfa64600)}40%{filter:drop-shadow(0 0 10px #dfa646bb) brightness(.92)}}
+@keyframes bankruptFlash{0%,100%{filter:drop-shadow(0 6px 5px #101a1240) saturate(1)}24%{filter:drop-shadow(0 0 12px #c05a4c) saturate(.55) brightness(.88)}55%{filter:drop-shadow(0 0 5px #d3a45c) saturate(.72)} }
+@keyframes crackReveal{0%{stroke-dashoffset:54;opacity:0}30%{opacity:1}100%{stroke-dashoffset:0;opacity:.85}}
 @keyframes realChipFlight{0%{opacity:0;transform:translate(0,0) scale(.45) rotate(-25deg)}12%{opacity:1}58%{opacity:1;transform:translate(calc(var(--dx)*.58),calc(var(--dy)*.58 - 65px)) scale(1.18) rotate(210deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.82) rotate(420deg)}}
-@keyframes eventSad{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(9px) rotate(-8deg)}70%{transform:translateY(5px) rotate(5deg)}100%{transform:translateY(0) rotate(0)}}
-@keyframes eventHappy{0%{transform:translateY(0) scale(1)}28%{transform:translateY(-19px) scale(1.08)}55%{transform:translateY(-7px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
-@keyframes bankruptDrop{0%{transform:translateY(0) rotate(0)}45%{transform:translateY(17px) rotate(7deg)}100%{transform:translateY(22px) rotate(0)}}
-@keyframes tearDrop{0%,100%{opacity:0;transform:translateY(-3px)}45%{opacity:1}80%{opacity:.8;transform:translateY(7px)}}
-@media(prefers-reduced-motion:reduce){.chip-flight,.player.event-send .mood-person,.player.event-receive .mood-person,.player.event-bankrupt .mood-person{animation:none!important}.chip-flight{opacity:0}}
+@media(prefers-reduced-motion:reduce){.player.event-send .mood:before,.player.event-receive .mood:before,.player.event-send .mood-person svg,.player.event-receive .mood-person svg,.player.event-bankrupt .mood-person svg,.player.event-bankrupt .tile-crack,.chip-flight{animation:none!important}.chip-flight{opacity:0}}
 </style></head><body><main class="wrap">
 <header class="top"><div><div class="brand">🀄 MAHJONG ROOM</div><div class="muted" style="font-size:10px">Chip Exchange · Spectator View</div></div><div style="display:flex;align-items:center;gap:7px"><a href="index.html" style="text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;color:white;border-radius:24px;padding:8px 11px;font-size:10px;font-weight:900">← MENU AWAL</a><button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">🔇 SUARA OFF</button><span class="tag">VIEWER · READ ONLY</span></div></header>
 <section id="joinPanel" class="join"><div class="eyebrow">SPECTATOR ACCESS</div><h1>Masuk ke Viewer Room</h1><p class="muted">Masukkan kode room dari Host untuk melihat saldo pemain dan pertukaran chip secara live.</p><form id="joinForm"><div class="field"><input id="roomCode" maxlength="8" placeholder="Masukkan kode room aktif" autocomplete="off" aria-label="Kode room" required><button id="joinBtn" type="submit">MASUK</button></div></form><div id="joinHint" class="hint" role="status">Viewer hanya dapat melihat data. Tidak bisa mengubah room.</div></section>
@@ -139,9 +116,17 @@ function render(s,animate=false){
  $('room').textContent=s.room||'Mahjong Night';$('roomCodeLabel').textContent='ROOM '+activeCode;
  $('rate').textContent='1 CHIP = '+rp(s.rate)+' PER CHIP';
  $('status').textContent=s.finished?'● GAME SELESAI':'● ROOM AKTIF';
- const moodFor=p=>{const chips=Math.max(0,Number(p.chips)||0),initial=Math.max(0,Number(p.initialChips)||0);if(p.bankrupt||chips===0)return 'bankrupt';if(chips>initial)return 'profit';if(chips<initial)return 'loss';return 'neutral';};const moodLabel={profit:'PROFIT',neutral:'NETRAL',loss:'LOSS',bankrupt:'CHIP HABIS'};const renderMood=p=>{const mood=moodFor(p);const face=mood==='profit'?'<path d="M38 47q7 9 14 0M68 47q7 9 14 0" stroke="#39251c" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M48 66q12 13 24 0" stroke="#9e3e32" stroke-width="4" fill="none" stroke-linecap="round"/>':mood==='loss'?'<path d="M38 50q7 -7 14 0M68 50q7 -7 14 0" stroke="#39251c" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M49 76q11 -10 22 0" stroke="#9e3e32" stroke-width="4" fill="none" stroke-linecap="round"/>':mood==='bankrupt'?'<path d="M38 51l12 5M68 56l12 -5" stroke="#39251c" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M50 78q10 -9 20 0" stroke="#9e3e32" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M34 58q-8 12 1 19M84 58q8 12 -1 19" stroke="#64a9dc" stroke-width="4" fill="none" stroke-linecap="round"/>':'<path d="M38 49h14M68 49h14" stroke="#39251c" stroke-width="4" stroke-linecap="round"/><path d="M50 70h20" stroke="#9e3e32" stroke-width="4" stroke-linecap="round"/>';return '<div class="mood mood-'+mood+'" role="img" aria-label="'+moodLabel[mood]+'"><span class="mood-person" aria-hidden="true"><svg viewBox="0 0 120 140" role="presentation"><defs><linearGradient id="robe-'+mood+'" x2="0" y2="1"><stop stop-color="#f6d878"/><stop offset="1" stop-color="#a66b28"/></linearGradient></defs><path d="M20 137q2-42 25-48h30q23 6 25 48z" fill="url(#robe-'+mood+')" stroke="#51351d" stroke-width="3"/><path d="M34 100l26 22 26-22" fill="none" stroke="#fff0c1" stroke-width="5"/><circle cx="60" cy="49" r="34" fill="#f3bd83" stroke="#563923" stroke-width="3"/><path d="M25 45q-3-37 35-38 39 1 36 40-12-13-27-17-23 14-44 15" fill="#30251f" stroke="#1c1714" stroke-width="3"/><path d="M35 19q25-15 51 0" fill="none" stroke="#d9b45e" stroke-width="7" stroke-linecap="round"/>'+face+'<path d="M49 86q11 9 22 0" fill="none" stroke="#9b6041" stroke-width="3"/></svg></span><span class="mood-spark spark-a">✦</span><span class="mood-spark spark-b">✧</span><span class="mood-state">'+moodLabel[mood]+'</span></div>';};const max=Math.max(1,...players.map(p=>Number(p.chips)||0));
+ const moodFor=p=>{const chips=Math.max(0,Number(p.chips)||0),initial=Math.max(0,Number(p.initialChips)||0);if(p.bankrupt===true||(chips===0&&initial>0))return 'bankrupt';if(chips>initial)return 'profit';if(chips<initial)return 'loss';return 'neutral';};
+ const moodLabel={profit:'Saldo chip di atas modal',neutral:'Saldo chip sama dengan modal',loss:'Saldo chip di bawah modal; menangis',bankrupt:'Bangkrut; chip habis'};
+ const renderMood=p=>{const mood=moodFor(p),uid='tile-'+String(p.seat||p.name||'player').replace(/[^a-zA-Z0-9_-]/g,'')+'-'+mood;let face='';
+  if(mood==='profit')face='<path class="tile-eye" d="M35 58q8-12 16 0M69 58q8-12 16 0"/><path class="tile-mouth" d="M46 78q14 17 28 0"/>';
+  else if(mood==='loss')face='<path class="tile-brow" d="M35 49l15 5M70 54l15-5"/><path class="tile-eye" d="M36 59q7 5 14 0M70 59q7 5 14 0"/><path class="tile-mouth" d="M48 84q12-11 24 0"/><path class="tile-tear" d="M34 63C30 69 29 72 29 75a5 5 0 0010 0c0-3-1-6-5-12zM86 63C82 69 81 72 81 75a5 5 0 0010 0c0-3-1-6-5-12z"/><path class="tile-tear-glint" d="M33 70q-2 3-1 5M85 70q-2 3-1 5"/>';
+  else if(mood==='bankrupt')face='<path class="tile-bankrupt-eye" d="M36 52l14 14m0-14L36 66M70 52l14 14m0-14L70 66"/><ellipse class="tile-bankrupt-mouth" cx="60" cy="83" rx="5" ry="6"/><path class="tile-crack" d="M86 45l-8 11 7 6-10 12 7 7-8 12"/>';
+  else face='<circle class="tile-eye-fill" cx="43" cy="57" r="4"/><circle class="tile-eye-fill" cx="77" cy="57" r="4"/><path class="tile-mouth" d="M51 79h18"/>';
+  return '<div class="mood mood-'+mood+'" role="img" aria-label="'+moodLabel[mood]+'"><span class="mood-person" aria-hidden="true"><svg viewBox="0 0 120 140" role="presentation"><defs><linearGradient id="'+uid+'-edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4dc9b"/><stop offset=".48" stop-color="#d1b36b"/><stop offset="1" stop-color="#927039"/></linearGradient><linearGradient id="'+uid+'-inner" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#fffef8"/><stop offset=".55" stop-color="#f8f2dd"/><stop offset="1" stop-color="#e9dcb9"/></linearGradient><linearGradient id="'+uid+'-gloss" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect class="tile-depth" x="12" y="8" width="102" height="128" rx="19"/><rect class="tile-front" x="6" y="2" width="102" height="128" rx="19" fill="url(#'+uid+'-edge)"/><rect class="tile-inner" x="12" y="8" width="90" height="116" rx="14" fill="url(#'+uid+'-inner)"/><path d="M23 15h47q-20 7-24 25H20z" fill="url(#'+uid+'-gloss)" opacity=".55"/><path class="tile-ornament" d="M23 29q8-10 16 0t16 0M23 35q8-10 16 0"/>'+face+'</svg></span></div>';};
+ const max=Math.max(1,...players.map(p=>Number(p.chips)||0));
  $('players').innerHTML=players.map((p,i)=>{
-  const bankrupt=!!p.bankrupt,joined=!!p.joined||(s.hostJoins&&Number(s.hostSeat)===i);
+  const bankrupt=!!p.bankrupt||((Number(p.chips)||0)===0&&Number(p.initialChips)>0),joined=!!p.joined||(s.hostJoins&&Number(s.hostSeat)===i);
   const mood=moodFor(p);return '<article class="player mood-player mood-'+mood+'" data-player="'+esc(p.name||'')+'"><span class="transaction-flash" aria-hidden="true"></span>'+renderMood(p)+'<small>'+esc(p.seat||['East','South','West','North'][i]||'SEAT')+' SEAT</small><b>'+esc(p.name||'Belum ada pemain')+'</b><div class="chips">'+fmt(p.chips)+' <span style="font-size:10px">CHIPS</span></div>'+renderChipBreakdown(p)+'<div class="rupiah">'+rp((Number(p.chips)||0)*(Number(s.rate)||0))+'</div><div class="seatline"><i style="width:'+Math.max(2,(Number(p.chips)||0)/max*100)+'%"></i></div><span class="statepill '+(bankrupt?'out':'')+'">'+(bankrupt?'BANGKRUT':(joined?'JOINED':'WAITING'))+'</span></article>';
  }).join('');
  const total=players.reduce((a,p)=>a+(Number(p.chips)||0),0),history=Array.isArray(s.history)?s.history:[];
@@ -202,7 +187,7 @@ function detectPlayerEvents(players){
  const next=new Map(players.map(p=>[String(p.name||''),Number(p.chips)||0]));
  players.forEach(p=>{
   const name=String(p.name||''),before=lastPlayerBalances.get(name),after=Number(p.chips)||0;
-  if(before!==undefined&&after<before&&after===0&&p.bankrupt)triggerPlayerEvent(name,'bankrupt');
+  if(before!==undefined&&after<before&&after===0&&(p.bankrupt||Number(p.initialChips)>0))triggerPlayerEvent(name,'bankrupt');
  });
  lastPlayerBalances=next;
 }
@@ -230,18 +215,19 @@ function flyRealChips(fromCard,toCard,h){
   $('exchangeFx').appendChild(chip);setTimeout(()=>chip.remove(),1250+i*75);
  });
 }
-function playTransferMoment(h){
+function playTransferMoment(h,focus='both'){
  const from=String(h.from||'Pemain'),to=String(h.to||'Pemain');
  $('momentEmoji').textContent='🪙';$('momentTitle').textContent=from+' ➜ '+to;
  $('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');
  const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);
- if(a)triggerPlayerEvent(from,'send');if(b)triggerPlayerEvent(to,'receive');
+ if((focus==='both'||focus==='send')&&a)triggerPlayerEvent(from,'send');
+ if((focus==='both'||focus==='receive')&&b)triggerPlayerEvent(to,'receive');
  flyRealChips(a,b,h);playChime();
 }
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
 function startDemoPreview(){
  const mode=new URLSearchParams(location.search).get('demo');
- const valid=['finished','manual','expired','chip-states','receive','send'];
+ const valid=['finished','manual','expired','chip-states','receive','send','bankrupt'];
  if(!valid.includes(mode))return;
  demoPreview=true;activeCode='MHJ-DEMO';currentRoomMode=mode;
  $('joinPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');
@@ -251,18 +237,20 @@ function startDemoPreview(){
   {seat:'West',name:'Jamie',chips:450,initialChips:1000,chipCounts:{2:20,10:10,50:9},joined:true},
   {seat:'North',name:'Taylor',chips:0,initialChips:1000,chipCounts:{},bankrupt:true,joined:true}
  ],history:[]};
+ if(mode==='bankrupt'){sample.players[3].chips=300;sample.players[3].bankrupt=false;}
  if(mode==='finished'){
   sample.players[0].chips=1250;sample.players[2].chips=680;sample.players[3].chips=1150;sample.players[3].bankrupt=false;
  }
  currentState=sample;lastPlayerBalances=new Map(sample.players.map(p=>[String(p.name||''),Number(p.chips)||0]));render(sample,false);
  if(['manual','expired','finished'].includes(mode))showRoomStatus(mode,true);
  else{
-  $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='chip-states'?'Perbandingan saldo dengan modal awal':'Simulasi transaksi chip';
-  $('momentText').textContent=mode==='chip-states'?'Profit · Netral · Loss · Chip habis':'Animasi transaksi hanya simulasi, tidak mengubah saldo';
+  $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='chip-states'?'Perbandingan saldo dengan modal awal':mode==='receive'?'Simulasi menerima chip dari lawan':mode==='send'?'Simulasi mengirim chip ke lawan':mode==='bankrupt'?'Simulasi kondisi bangkrut':'Simulasi transaksi chip';
+  $('momentText').textContent=mode==='chip-states'?'Profit · Netral · Loss · Bangkrut':mode==='bankrupt'?'Animasi khusus bangkrut · data simulasi saja':mode==='receive'?'Gerakan penerima saja · data simulasi':mode==='send'?'Gerakan pengirim saja · data simulasi':'Animasi transfer hanya simulasi, data asli tidak diubah';
   if(mode==='receive'||mode==='send'){
    const transfer=mode==='receive'?{from:'Alex',to:'Morgan',amount:250,chipCounts:{100:2,25:2},time:'DEMO'}:{from:'Morgan',to:'Jamie',amount:250,chipCounts:{100:2,25:2},time:'DEMO'};
-   playTransferMoment(transfer);
+   playTransferMoment(transfer,mode);
   }
+  if(mode==='bankrupt'){const depleted={...sample,players:sample.players.map(p=>p.name==='Taylor'?{...p,chips:0,bankrupt:true}:p)};setTimeout(()=>render(depleted,true),450);}
  }
  setSync(true,'DEMO PREVIEW');
  $('lastUpdate').textContent='Tampilan simulasi · data asli tidak diubah';
