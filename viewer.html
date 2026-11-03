@@ -313,8 +313,8 @@ function stopAllMotionsDemo(){if(allMotionsDemoTimer){clearInterval(allMotionsDe
 function startAllMotionsDemo(){
  stopAllMotionsDemo();
  const transfers=[
-  {from:'Alex',to:'Jamie',amount:150,chipCounts:{50:2,25:2},time:'DEMO · East ➜ West'},
-  {from:'Taylor',to:'Morgan',amount:100,chipCounts:{50:2},time:'DEMO · North ➜ South'}
+  {from:'Alex',to:'Morgan',amount:150,chipCounts:{50:2,25:2},time:'DEMO · East ➜ South'},
+  {from:'Taylor',to:'Jamie',amount:100,chipCounts:{50:2},time:'DEMO · North ➜ West'}
  ];let index=0;
  const play=()=>{playTransferMoment(transfers[index%transfers.length],'both');index++;};
  allMotionsStartTimeout=setTimeout(()=>{play();allMotionsDemoTimer=setInterval(play,5200);},2600);
