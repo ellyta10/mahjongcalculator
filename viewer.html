@@ -54,7 +54,10 @@ html{touch-action:pan-x pan-y;}
 .tile-tear-drop{transform-box:fill-box;transform-origin:center;animation:tearFall 1.45s ease-in-out infinite}
 .tile-tear-drop.tile-tear-right{animation-delay:.72s}
 .tile-tear-glint{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;opacity:.9}
-.tile-laugh-mouth{fill:#56362e;stroke:#34291f;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:tileLaugh .78s ease-in-out infinite}
+.tile-laugh-group{transform-box:fill-box;transform-origin:center;animation:tileLaugh .78s ease-in-out infinite}
+.tile-laugh-mouth{fill:#56362e;stroke:#34291f;stroke-width:2}
+.tile-laugh-teeth{fill:#fff8e8;stroke:#ead9b7;stroke-width:.65;opacity:0;animation:tileTeeth .78s ease-in-out infinite}
+.tile-laugh-tooth-line{fill:none;stroke:#d6c39f;stroke-width:.7;stroke-linecap:round;opacity:0;animation:tileTeeth .78s ease-in-out infinite}
 .tile-laugh-highlight{fill:#fff4dc;opacity:.86}
 .mood-neutral .tile-eye-open{animation:neutralEyeOpen 4s linear infinite}
 .mood-neutral .tile-eye-closed{animation:neutralEyeClosed 4s linear infinite}
@@ -80,13 +83,14 @@ html{touch-action:pan-x pan-y;}
 @keyframes sendGleam{0%,100%{filter:drop-shadow(0 0 0 #dfa64600)}40%{filter:drop-shadow(0 0 10px #dfa646bb) brightness(.92)}}
 @keyframes bankruptFlash{0%,100%{filter:drop-shadow(0 6px 5px #101a1240) saturate(1)}24%{filter:drop-shadow(0 0 12px #c05a4c) saturate(.55) brightness(.88)}55%{filter:drop-shadow(0 0 5px #d3a45c) saturate(.72)} }
 @keyframes tileLaugh{0%,100%{transform:scaleY(.22)}28%{transform:scaleY(1)}55%{transform:scaleY(.62)}78%{transform:scaleY(.96)}}
+@keyframes tileTeeth{0%,14%,100%{opacity:0}28%,78%{opacity:1}55%{opacity:.75}}
 @keyframes tearFall{0%{transform:translateY(-2px);opacity:0}12%{opacity:1}72%{opacity:1}100%{transform:translateY(17px);opacity:0}}
 @keyframes neutralEyeOpen{0%,90%,94%,100%{opacity:1}91%,93%{opacity:0}}
 @keyframes neutralEyeClosed{0%,90%,94%,100%{opacity:0}91%,93%{opacity:1}}
 @keyframes crackReveal{0%{stroke-dashoffset:54;opacity:0}30%{opacity:1}100%{stroke-dashoffset:0;opacity:.85}}
 @keyframes realChipFlight{0%{opacity:0;transform:translate(0,0) scale(.45) rotate(-25deg)}12%{opacity:1}58%{opacity:1;transform:translate(calc(var(--dx)*.58),calc(var(--dy)*.58 - 65px)) scale(1.18) rotate(210deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.82) rotate(420deg)}}
 @media(prefers-reduced-motion:reduce){.player.event-send .mood:before,.player.event-receive .mood:before,.player.event-send .mood-person svg,.player.event-receive .mood-person svg,.player.event-bankrupt .mood-person svg,.player.event-bankrupt .tile-crack,.chip-flight{animation:none!important}.chip-flight{opacity:0}}
-@media(prefers-reduced-motion:reduce){.tile-tear-drop,.tile-laugh-mouth,.mood-neutral .tile-eye-open,.mood-neutral .tile-eye-closed{animation:none!important}.tile-tear-drop{opacity:1;transform:none}.tile-laugh-mouth{transform:scaleY(.7)}}
+@media(prefers-reduced-motion:reduce){.tile-tear-drop,.tile-laugh-group,.tile-laugh-teeth,.tile-laugh-tooth-line,.mood-neutral .tile-eye-open,.mood-neutral .tile-eye-closed{animation:none!important}.tile-tear-drop{opacity:1;transform:none}.tile-laugh-group{transform:scaleY(.7)}.tile-laugh-teeth,.tile-laugh-tooth-line{opacity:1}}
 </style></head><body><main class="wrap">
 <header class="top"><div><div class="brand">🀄 MAHJONG ROOM</div><div class="muted" style="font-size:10px">Chip Exchange · Spectator View</div></div><div style="display:flex;align-items:center;gap:7px"><a href="index.html" style="text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;color:white;border-radius:24px;padding:8px 11px;font-size:10px;font-weight:900">← MENU AWAL</a><button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">🔇 SUARA OFF</button><span class="tag">VIEWER · READ ONLY</span></div></header>
 <section id="joinPanel" class="join"><div class="eyebrow">SPECTATOR ACCESS</div><h1>Masuk ke Viewer Room</h1><p class="muted">Masukkan kode room dari Host untuk melihat saldo pemain dan pertukaran chip secara live.</p><form id="joinForm"><div class="field"><input id="roomCode" maxlength="8" placeholder="Masukkan kode room aktif" autocomplete="off" aria-label="Kode room" required><button id="joinBtn" type="submit">MASUK</button></div></form><div id="joinHint" class="hint" role="status">Viewer hanya dapat melihat data. Tidak bisa mengubah room.</div></section>
@@ -130,7 +134,7 @@ function render(s,animate=false){
  const moodFor=p=>{const chips=Math.max(0,Number(p.chips)||0),initial=Math.max(0,Number(p.initialChips)||0);if(p.bankrupt===true||(chips===0&&initial>0))return 'bankrupt';if(chips>initial)return 'profit';if(chips<initial)return 'loss';return 'neutral';};
  const moodLabel={profit:'Saldo chip di atas modal',neutral:'Saldo chip sama dengan modal',loss:'Saldo chip di bawah modal; menangis',bankrupt:'Bangkrut; chip habis'};
  const renderMood=p=>{const mood=moodFor(p),uid='tile-'+String(p.seat||p.name||'player').replace(/[^a-zA-Z0-9_-]/g,'')+'-'+mood;let face='';
-  if(mood==='profit')face='<path class="tile-eye" d="M35 58q8-12 16 0M69 58q8-12 16 0"/><ellipse class="tile-laugh-mouth" cx="60" cy="80" rx="11" ry="8"/>';
+  if(mood==='profit')face='<path class="tile-eye" d="M35 58q8-12 16 0M69 58q8-12 16 0"/><g class="tile-laugh-group"><ellipse class="tile-laugh-mouth" cx="60" cy="80" rx="11" ry="8"/><path class="tile-laugh-teeth" d="M52 76q8 3 16 0l-1 5q-7 3-14 0z"/><path class="tile-laugh-tooth-line" d="M57 77.6v3M60 78v3M63 77.6v3"/></g>';
   else if(mood==='loss')face='<path class="tile-brow" d="M35 49l15 5M70 54l15-5"/><path class="tile-eye" d="M36 59q7 5 14 0M70 59q7 5 14 0"/><path class="tile-mouth" d="M48 84q12-11 24 0"/><g class="tile-tear-drop tile-tear-left"><path class="tile-tear" d="M34 63C30 69 29 72 29 75a5 5 0 0010 0c0-3-1-6-5-12z"/><path class="tile-tear-glint" d="M33 70q-2 3-1 5"/></g><g class="tile-tear-drop tile-tear-right"><path class="tile-tear" d="M86 63C82 69 81 72 81 75a5 5 0 0010 0c0-3-1-6-5-12z"/><path class="tile-tear-glint" d="M85 70q-2 3-1 5"/></g>';
   else if(mood==='bankrupt')face='<path class="tile-bankrupt-eye" d="M36 52l14 14m0-14L36 66M70 52l14 14m0-14L70 66"/><ellipse class="tile-bankrupt-mouth" cx="60" cy="83" rx="5" ry="6"/><path class="tile-crack" d="M86 45l-8 11 7 6-10 12 7 7-8 12"/>';
   else face='<circle class="tile-eye-fill tile-eye-open" cx="43" cy="57" r="4"/><circle class="tile-eye-fill tile-eye-open" cx="77" cy="57" r="4"/><path class="tile-eye tile-eye-closed" d="M36 58q7 6 14 0M70 58q7 6 14 0"/><path class="tile-mouth" d="M51 79h18"/>';
