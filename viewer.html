@@ -48,6 +48,12 @@ html{touch-action:pan-x pan-y;}
 .tile-front{stroke:#43a769;stroke-width:2.4}
 .tile-rim{stroke:#b88c39;stroke-width:1.2}
 .tile-inner{stroke:#fff8e7;stroke-width:1.25}
+.tile-direction-badge{pointer-events:none}
+.tile-direction-shadow{fill:#071d12;opacity:.28}
+.tile-direction-rim{stroke:#8e6725;stroke-width:.75}
+.tile-direction-center{fill:#10472d;stroke:#f3d98c;stroke-width:.8}
+.tile-direction-needle{fill:#ffe5a0;stroke:#8f6928;stroke-width:.35}
+.tile-direction-letter{fill:#fff0bc;font-family:Georgia,serif;font-size:7px;font-weight:700;text-anchor:middle;dominant-baseline:middle}
 .tile-highlight{fill:url(#tile-gloss-fallback);opacity:.48;pointer-events:none}
 .tile-filigree{fill:none;stroke:#b88935;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tile-filigree-shadow{fill:none;stroke:#71511c;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;opacity:.42}
@@ -59,22 +65,28 @@ html{touch-action:pan-x pan-y;}
 .tile-eye-highlight{fill:#fffdf8;opacity:.98}
 .tile-eye-glint{fill:#fff;opacity:.72}
 .tile-eye-lower-glow{fill:#e3a94d;opacity:.86}
-.tile-eye-open{opacity:1}
+.tile-eye-open{opacity:1;transform-box:fill-box;transform-origin:center}
 .tile-eye-closed{opacity:0}
+.mood-neutral .tile-eye-open{animation:neutralEyeOpen 3.2s linear infinite}
+.mood-neutral .tile-eye-closed{animation:neutralEyeClosed 3.2s linear infinite}
+.mood-neutral .tile-eye-double{animation:neutralDouble 10s linear infinite}
+.tile-happy-eyes{transform-box:fill-box;transform-origin:center;animation:happySquint 1.25s ease-in-out infinite}
+.mood-profit .tile-cheek{animation:happyBlush 1.25s ease-in-out infinite}
 .tile-cheek{fill:#ee9f8b;opacity:.46;filter:blur(1.7px)}
 .tile-mouth{fill:none;stroke:#2f2119;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .tile-tear{fill:#48b9ef;stroke:#e1f7ff;stroke-width:1.4}
 .tile-tear-drop{transform-box:fill-box;transform-origin:center;animation:tearFall 1.45s ease-in-out infinite}
 .tile-tear-drop.tile-tear-right{animation-delay:.72s}
 .tile-tear-glint{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;opacity:.9}
-.tile-laugh-group{transform-box:fill-box;transform-origin:center;animation:tileLaugh .78s ease-in-out infinite}
+.tile-laugh-group{transform-box:fill-box;transform-origin:center;animation:tileLaugh 1.25s ease-in-out infinite}
 .tile-laugh-mouth{fill:#4a1e18;stroke:#251710;stroke-width:1.8}
-.tile-laugh-teeth{fill:#fff9e9;stroke:#e1d0ad;stroke-width:.65;opacity:0;animation:tileTeeth .78s ease-in-out infinite}
-.tile-laugh-tooth-line{fill:none;stroke:#d3bd91;stroke-width:.7;stroke-linecap:round;opacity:0;animation:tileTeeth .78s ease-in-out infinite}
+.tile-laugh-teeth{fill:#fff9e9;stroke:#e1d0ad;stroke-width:.65;opacity:0;animation:tileTeeth 1.25s ease-in-out infinite}
+.tile-laugh-tooth-line{fill:none;stroke:#d3bd91;stroke-width:.7;stroke-linecap:round;opacity:0;animation:tileTeeth 1.25s ease-in-out infinite}
 .tile-laugh-tongue{fill:#df8575;stroke:#8c4339;stroke-width:.7}
 .tile-bankrupt-eye{fill:none;stroke:#65534a;stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round}
 .tile-bankrupt-mouth{fill:#735950}
 .tile-crack{fill:none;stroke:#a34e43;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:54;stroke-dashoffset:0;opacity:.72}
+.tile-event-smile{fill:none;stroke:#39231c;stroke-width:2.8;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:center}
 .player{transition:border-color .25s,box-shadow .25s}
 .player.sending,.player.receiving{position:relative;animation:none!important}
 .player.sending .mood,.player.receiving .mood{border-color:transparent}
@@ -86,6 +98,14 @@ html{touch-action:pan-x pan-y;}
 .player.event-receive .mood-person svg{animation:receiveGleam 1s ease-out both}
 .player.event-bankrupt .mood-person svg{animation:bankruptFlash 1.25s ease-out both}
 .player.event-bankrupt .tile-crack{animation:crackReveal 1.05s ease-out both}
+.player.event-send .tile-eye-open{animation:sendGlance 1.05s ease-out both}
+.player.event-send .tile-laugh-group,.player.event-send .tile-mouth,.player.event-send .tile-bankrupt-mouth{transform-box:fill-box;transform-origin:center;animation:sendPurse 1.05s ease-out both}
+.player.event-send .tile-laugh-teeth,.player.event-send .tile-laugh-tooth-line{opacity:0}
+.player.event-receive .tile-eye-open{animation:receiveEyes 1.05s ease-out both}
+.player.event-receive .tile-event-smile{animation:receiveSmile 1.05s ease-out both}
+.player.event-receive .tile-mouth,.player.event-receive .tile-bankrupt-mouth{opacity:.22}
+.player.event-receive .tile-tear-drop{animation:none!important;opacity:0}
+.player.event-receive .tile-cheek{animation:receiveBlush 1.05s ease-out both}
 .chip-flight{position:fixed;z-index:120;left:0;top:0;width:42px;height:42px;pointer-events:none;filter:drop-shadow(0 5px 5px #0007);animation:realChipFlight 1.05s cubic-bezier(.18,.72,.22,1) forwards}
 .chip-flight svg{width:100%;height:100%;display:block}
 @keyframes receiveHalo{0%{transform:scale(.78);opacity:0}28%{opacity:.9}100%{transform:scale(1.17);opacity:0}}
@@ -93,15 +113,23 @@ html{touch-action:pan-x pan-y;}
 @keyframes receiveGleam{0%,100%{filter:drop-shadow(0 0 0 #63bd7a00)}38%{filter:drop-shadow(0 0 12px #51b976cc) brightness(1.08)}}
 @keyframes sendGleam{0%,100%{filter:drop-shadow(0 0 0 #dfa64600)}40%{filter:drop-shadow(0 0 10px #dfa646bb) brightness(.92)}}
 @keyframes bankruptFlash{0%,100%{filter:drop-shadow(0 6px 5px #101a1240) saturate(1)}24%{filter:drop-shadow(0 0 12px #c05a4c) saturate(.55) brightness(.88)}55%{filter:drop-shadow(0 0 5px #d3a45c) saturate(.72)} }
-@keyframes tileLaugh{0%,100%{transform:scaleY(.22)}28%{transform:scaleY(1)}55%{transform:scaleY(.62)}78%{transform:scaleY(.96)}}
-@keyframes tileTeeth{0%,14%,100%{opacity:0}28%,78%{opacity:1}55%{opacity:.75}}
+@keyframes tileLaugh{0%,100%{transform:scaleY(.34)}18%{transform:scaleY(.48)}40%,58%{transform:scaleY(1)}76%{transform:scaleY(.72)}90%{transform:scaleY(.5)}}
+@keyframes tileTeeth{0%,24%,100%{opacity:0}34%,70%{opacity:1}56%{opacity:.82}}
 @keyframes tearFall{0%{transform:translateY(-2px);opacity:0}12%{opacity:1}72%{opacity:1}100%{transform:translateY(17px);opacity:0}}
-@keyframes neutralEyeOpen{0%,90%,94%,100%{opacity:1}91%,93%{opacity:0}}
-@keyframes neutralEyeClosed{0%,90%,94%,100%{opacity:0}91%,93%{opacity:1}}
+@keyframes neutralEyeOpen{0%,78%,84%,91%,100%{opacity:1}79%,83%,92%,95%{opacity:0}}
+@keyframes neutralEyeClosed{0%,78%,84%,91%,100%{opacity:0}79%,83%,92%,95%{opacity:1}}
+@keyframes neutralDouble{0%,80%,100%{opacity:0}81%,82.5%,85%,86.5%{opacity:1}83.5%,84.5%,87.5%,89%{opacity:0}}
+@keyframes happySquint{0%,100%{transform:scaleY(.92)}40%,58%{transform:scaleY(.4)}76%{transform:scaleY(.68)}}
+@keyframes happyBlush{0%,100%{opacity:.42}40%,62%{opacity:.76}}
+@keyframes sendGlance{0%,100%{transform:translateX(0) scale(1)}20%,52%{transform:translateX(var(--glance-x,3px)) scale(1.08)}78%{transform:translateX(var(--glance-x,3px)) scale(1.02)}}
+@keyframes sendPurse{0%,100%{transform:scale(.78,.72)}20%,55%{transform:scale(.5,.9)}78%{transform:scale(.84,.8)}}
+@keyframes receiveEyes{0%,100%{transform:scale(1)}18%,42%{transform:scale(1.16,1.18)}70%{transform:scale(.96,1)}}
+@keyframes receiveSmile{0%,100%{opacity:0;transform:scaleY(.45)}18%,76%{opacity:1;transform:scaleY(1)}}
+@keyframes receiveBlush{0%,100%{opacity:.46}22%,72%{opacity:.85}}
 @keyframes crackReveal{0%{stroke-dashoffset:54;opacity:0}30%{opacity:1}100%{stroke-dashoffset:0;opacity:.85}}
 @keyframes realChipFlight{0%{opacity:0;transform:translate(0,0) scale(.45) rotate(-25deg)}12%{opacity:1}58%{opacity:1;transform:translate(calc(var(--dx)*.58),calc(var(--dy)*.58 - 65px)) scale(1.18) rotate(210deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.82) rotate(420deg)}}
-@media(prefers-reduced-motion:reduce){.player.event-send .mood:before,.player.event-receive .mood:before,.player.event-send .mood-person svg,.player.event-receive .mood-person svg,.player.event-bankrupt .mood-person svg,.player.event-bankrupt .tile-crack,.chip-flight{animation:none!important}.chip-flight{opacity:0}}
-@media(prefers-reduced-motion:reduce){.tile-tear-drop,.tile-laugh-group,.tile-laugh-teeth,.tile-laugh-tooth-line,.mood-neutral .tile-eye-open,.mood-neutral .tile-eye-closed{animation:none!important}.tile-tear-drop{opacity:1;transform:none}.tile-laugh-group{transform:scaleY(.7)}.tile-laugh-teeth,.tile-laugh-tooth-line{opacity:1}}
+@media(prefers-reduced-motion:reduce){.player.event-send .mood:before,.player.event-receive .mood:before,.player.event-send .mood-person svg,.player.event-receive .mood-person svg,.player.event-bankrupt .mood-person svg,.player.event-bankrupt .tile-crack,.player.event-send .tile-eye-open,.player.event-send .tile-laugh-group,.player.event-send .tile-mouth,.player.event-send .tile-bankrupt-mouth,.player.event-receive .tile-eye-open,.player.event-receive .tile-event-smile,.player.event-receive .tile-cheek,.chip-flight{animation:none!important}.chip-flight{opacity:0}}
+@media(prefers-reduced-motion:reduce){.tile-tear-drop,.tile-laugh-group,.tile-laugh-teeth,.tile-laugh-tooth-line,.mood-neutral .tile-eye-open,.mood-neutral .tile-eye-closed,.mood-neutral .tile-eye-double,.tile-happy-eyes,.mood-profit .tile-cheek{animation:none!important}.tile-tear-drop{opacity:1;transform:none}.tile-laugh-group{transform:scaleY(.7)}.tile-laugh-teeth,.tile-laugh-tooth-line{opacity:1}}
 </style></head><body><main class="wrap">
 <header class="top"><div><div class="brand">🀄 MAHJONG ROOM</div><div class="muted" style="font-size:10px">Chip Exchange · Spectator View</div></div><div style="display:flex;align-items:center;gap:7px"><a href="index.html" style="text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;color:white;border-radius:24px;padding:8px 11px;font-size:10px;font-weight:900">← MENU AWAL</a><button id="soundToggle" class="sound-toggle" type="button" aria-pressed="false">🔇 SUARA OFF</button><span class="tag">VIEWER · READ ONLY</span></div></header>
 <section id="joinPanel" class="join"><div class="eyebrow">SPECTATOR ACCESS</div><h1>Masuk ke Viewer Room</h1><p class="muted">Masukkan kode room dari Host untuk melihat saldo pemain dan pertukaran chip secara live.</p><form id="joinForm"><div class="field"><input id="roomCode" maxlength="8" placeholder="Masukkan kode room aktif" autocomplete="off" aria-label="Kode room" required><button id="joinBtn" type="submit">MASUK</button></div></form><div id="joinHint" class="hint" role="status">Viewer hanya dapat melihat data. Tidak bisa mengubah room.</div></section>
@@ -146,17 +174,22 @@ function render(s,animate=false){
  const moodLabel={profit:'Saldo chip di atas modal',neutral:'Saldo chip sama dengan modal',loss:'Saldo chip di bawah modal; menangis',bankrupt:'Bangkrut; chip habis'};
  const renderMood=p=>{
   const mood=moodFor(p),uid='tile-'+String(p.seat||p.name||'player').replace(/[^a-zA-Z0-9_-]/g,'')+'-'+mood;
+  const seatName=String(p.seat||'').trim(),seatKey=seatName.toLowerCase();
+  const compassDirections=[{name:'East',letter:'E',keys:['east','timur','e']},{name:'South',letter:'S',keys:['south','selatan','s']},{name:'West',letter:'W',keys:['west','barat','w']},{name:'North',letter:'N',keys:['north','utara','n']}];
+  const compass=compassDirections.find(d=>d.keys.some(k=>seatKey===k||seatKey.startsWith(k+' ')));
+  const directionBadge=compass?`<g class="tile-direction-badge" aria-hidden="true"><circle class="tile-direction-shadow" cx="60" cy="42" r="8"/><circle class="tile-direction-rim" cx="60" cy="41" r="7.4" fill="url(#${uid}-gold)"/><circle class="tile-direction-center" cx="60" cy="41" r="5.55"/><path class="tile-direction-needle" d="M60 36.3l1.05 2.8L60 40l-1.05-.9z"/><text class="tile-direction-letter" x="60" y="44">${compass.letter}</text></g>`:'';
+  const moodAria=moodLabel[mood]+(compass?' · Arah '+compass.name:'');
   const eyePair='<g class="tile-eye-open"><g><ellipse class="tile-eye-shell" cx="37" cy="79" rx="10.6" ry="15"/><ellipse class="tile-eye-dark" fill="url(#'+uid+'-eye)" cx="37" cy="78" rx="8.9" ry="13.2"/><ellipse class="tile-eye-highlight" cx="40" cy="72" rx="2.5" ry="3.3"/><ellipse class="tile-eye-glint" cx="34" cy="85" rx="2.8" ry="1.25"/><ellipse class="tile-eye-lower-glow" cx="37" cy="90" rx="4.7" ry="1.15"/></g><g><ellipse class="tile-eye-shell" cx="83" cy="79" rx="10.6" ry="15"/><ellipse class="tile-eye-dark" fill="url(#'+uid+'-eye)" cx="83" cy="78" rx="8.9" ry="13.2"/><ellipse class="tile-eye-highlight" cx="86" cy="72" rx="2.5" ry="3.3"/><ellipse class="tile-eye-glint" cx="80" cy="85" rx="2.8" ry="1.25"/><ellipse class="tile-eye-lower-glow" cx="83" cy="90" rx="4.7" ry="1.15"/></g></g>';
   const brows='<path class="tile-brow" d="M28 59q9-7 18 0M74 59q9-7 18 0"/>';
   const cheeks='<ellipse class="tile-cheek" cx="26" cy="102" rx="9" ry="4.3"/><ellipse class="tile-cheek" cx="94" cy="102" rx="9" ry="4.3"/>';
-  const neutralEyes=eyePair+'<path class="tile-eye tile-eye-closed" d="M28 80q9 7 18 0M74 80q9 7 18 0"/>';
+  const neutralEyes=eyePair+'<path class="tile-eye tile-eye-closed" d="M28 80q9 7 18 0M74 80q9 7 18 0"/><path class="tile-eye tile-eye-closed tile-eye-double" d="M28 80q9 7 18 0M74 80q9 7 18 0"/>';
   let face='';
-  if(mood==='profit')face=brows+eyePair+'<g class="tile-laugh-group"><ellipse class="tile-laugh-mouth" cx="60" cy="111" rx="12.5" ry="9.5"/><path class="tile-laugh-teeth" d="M51 104q9 3 18 0l-.7 5q-8.3 3-16.6 0z"/><path class="tile-laugh-tooth-line" d="M56 105v4M60 105.5v4M64 105v4"/><ellipse class="tile-laugh-tongue" cx="60" cy="114" rx="5.5" ry="2.4"/></g>';
+  if(mood==='profit')face=brows+'<g class="tile-happy-eyes">'+eyePair+'</g>'+'<g class="tile-laugh-group"><ellipse class="tile-laugh-mouth" cx="60" cy="111" rx="12.5" ry="9.5"/><path class="tile-laugh-teeth" d="M51 104q9 3 18 0l-.7 5q-8.3 3-16.6 0z"/><path class="tile-laugh-tooth-line" d="M56 105v4M60 105.5v4M64 105v4"/><ellipse class="tile-laugh-tongue" cx="60" cy="114" rx="5.5" ry="2.4"/></g>';
   else if(mood==='loss')face='<path class="tile-brow" d="M28 61q10 6 18 0M74 61q8 6 18 0"/>'+eyePair+'<path class="tile-mouth" d="M50 110q10-10 20 0"/><g class="tile-tear-drop tile-tear-left"><path class="tile-tear" d="M35 91c-4 6-5 9-5 12a5 5 0 0010 0c0-3-1-6-5-12z"/><path class="tile-tear-glint" d="M34 98q-2 3-1 5"/></g><g class="tile-tear-drop tile-tear-right"><path class="tile-tear" d="M83 91c-4 6-5 9-5 12a5 5 0 0010 0c0-3-1-6-5-12z"/><path class="tile-tear-glint" d="M82 98q-2 3-1 5"/></g>';
   else if(mood==='bankrupt')face='<path class="tile-brow" d="M28 60l18 4M74 64l18-4"/><path class="tile-bankrupt-eye" d="M31 70l13 13m0-13L31 83M76 70l13 13m0-13L76 83"/><ellipse class="tile-bankrupt-mouth" cx="60" cy="111" rx="5.5" ry="6.5"/><path class="tile-crack" d="M91 61l-7 10 6 6-8 10 6 7-7 11"/>';
   else face=brows+neutralEyes+'<path class="tile-mouth" d="M54 111h12"/>';
   const filigree='M17 47c0-8 2-17 9-22 5-4 13-3 14 3 1 5-4 9-9 8-4-1-5-5-2-8 2-2 5-1 5 2M17 43c6-3 9-8 9-14 0-4-2-7-6-6M23 22c7-3 13-2 19-5M18 47c-3 5-4 9-3 14';
-  return `<div class="mood mood-${mood}" role="img" aria-label="${moodLabel[mood]}"><span class="mood-person" aria-hidden="true"><svg viewBox="0 0 120 160" role="presentation"><defs>
+  return `<div class="mood mood-${mood}" role="img" aria-label="${moodAria}"><span class="mood-person" aria-hidden="true"><svg viewBox="0 0 120 160" role="presentation"><defs>
    <linearGradient id="${uid}-edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#55bd7a"/><stop offset=".28" stop-color="#08703e"/><stop offset=".7" stop-color="#04502e"/><stop offset="1" stop-color="#01351f"/></linearGradient>
    <linearGradient id="${uid}-gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0ad"/><stop offset=".35" stop-color="#d6ae55"/><stop offset=".7" stop-color="#f0d57e"/><stop offset="1" stop-color="#98702c"/></linearGradient>
    <linearGradient id="${uid}-inner" x1="0" y1="0" x2=".15" y2="1"><stop stop-color="#fffdf6"/><stop offset=".5" stop-color="#f6f1e4"/><stop offset=".82" stop-color="#f1ebdc"/><stop offset="1" stop-color="#ddd4c1"/></linearGradient>
@@ -170,7 +203,7 @@ function render(s,animate=false){
   <rect class="tile-inner" x="14" y="11" width="87" height="129" rx="13" fill="url(#${uid}-inner)"/>
   <path d="M22 16h48q-21 8-25 27H20z" fill="url(#${uid}-gloss)" opacity=".55"/>
   <g class="tile-filigree"><g class="tile-filigree-shadow"><path d="${filigree}"/><path d="${filigree}" transform="translate(120 160) rotate(180)"/></g><path d="${filigree}"/><path d="${filigree}" transform="translate(120 160) rotate(180)"/><g class="tile-filigree-light"><path d="M20 44c1-8 3-14 8-18 3-2 7-2 9 1M20 42c4-3 7-7 7-12"/><path d="M20 44c1-8 3-14 8-18 3-2 7-2 9 1M20 42c4-3 7-7 7-12" transform="translate(120 160) rotate(180)"/></g></g>
-  ${cheeks.replaceAll('class="tile-cheek"','class="tile-cheek" filter="url(#'+uid+'-blush)"')}${face}
+  ${directionBadge}${cheeks.replaceAll('class="tile-cheek"','class="tile-cheek" filter="url(#'+uid+'-blush)"')}${face}<path class="tile-event-smile" d="M51 110q9 8 18 0"/>
  </svg></span></div>`;
  };
   const max=Math.max(1,...players.map(p=>Number(p.chips)||0));
@@ -240,12 +273,13 @@ function detectPlayerEvents(players){
  });
  lastPlayerBalances=next;
 }
-function triggerPlayerEvent(name,type){
- const card=[...document.querySelectorAll('.player')].find(el=>el.dataset.player===name);
+function triggerPlayerEvent(name,type,otherName=''){
+ const cards=[...document.querySelectorAll('.player')],card=cards.find(el=>el.dataset.player===name);
  if(!card)return;
  card.classList.remove('event-send','event-receive','event-bankrupt');void card.offsetWidth;
+ if(type==='send'&&otherName){const other=cards.find(el=>el.dataset.player===otherName);if(other){const a=card.getBoundingClientRect(),b=other.getBoundingClientRect();card.style.setProperty('--glance-x',(b.left+b.width/2>=a.left+a.width/2?'3px':'-3px'));}}else card.style.removeProperty('--glance-x');
  card.classList.add(type==='send'?'event-send':type==='receive'?'event-receive':'event-bankrupt');
- if(type!=='bankrupt')setTimeout(()=>card.classList.remove('event-'+type),1250);
+ if(type!=='bankrupt')setTimeout(()=>{card.classList.remove('event-'+type);card.style.removeProperty('--glance-x');},1250);
 }
 function chipKeysForTransfer(h){
  const counts=h.chipCounts&&typeof h.chipCounts==='object'?Object.entries(h.chipCounts).filter(([v,q])=>Number(q)>0&&Number(v)>0):[];
@@ -269,14 +303,26 @@ function playTransferMoment(h,focus='both'){
  $('momentEmoji').textContent='🪙';$('momentTitle').textContent=from+' ➜ '+to;
  $('momentText').textContent=fmt(h.amount)+' chips berpindah · '+(h.time||'Transfer baru');
  const cards=[...document.querySelectorAll('.player')],a=cards.find(el=>el.dataset.player===from),b=cards.find(el=>el.dataset.player===to);
- if((focus==='both'||focus==='send')&&a)triggerPlayerEvent(from,'send');
- if((focus==='both'||focus==='receive')&&b)triggerPlayerEvent(to,'receive');
+ if((focus==='both'||focus==='send')&&a)triggerPlayerEvent(from,'send',to);
+ if((focus==='both'||focus==='receive')&&b)triggerPlayerEvent(to,'receive',from);
  flyRealChips(a,b,h);playChime();
 }
 $('soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'🔊 SUARA ON':'🔇 SUARA OFF';$('soundToggle').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled)playChime();});
+let allMotionsDemoTimer=null,allMotionsBankruptTimeout=null,allMotionsStartTimeout=null;
+function stopAllMotionsDemo(){if(allMotionsDemoTimer){clearInterval(allMotionsDemoTimer);allMotionsDemoTimer=null;}if(allMotionsBankruptTimeout){clearTimeout(allMotionsBankruptTimeout);allMotionsBankruptTimeout=null;}if(allMotionsStartTimeout){clearTimeout(allMotionsStartTimeout);allMotionsStartTimeout=null;}}
+function startAllMotionsDemo(){
+ stopAllMotionsDemo();
+ const transfers=[
+  {from:'Alex',to:'Jamie',amount:150,chipCounts:{50:2,25:2},time:'DEMO · East ➜ West'},
+  {from:'Taylor',to:'Morgan',amount:100,chipCounts:{50:2},time:'DEMO · North ➜ South'}
+ ];let index=0;
+ const play=()=>{playTransferMoment(transfers[index%transfers.length],'both');index++;};
+ allMotionsStartTimeout=setTimeout(()=>{play();allMotionsDemoTimer=setInterval(play,5200);},2600);
+ allMotionsBankruptTimeout=setTimeout(()=>triggerPlayerEvent('Taylor','bankrupt'),4700);
+}
 function startDemoPreview(){
  const mode=new URLSearchParams(location.search).get('demo');
- const valid=['finished','manual','expired','chip-states','receive','send','bankrupt'];
+ const valid=['finished','manual','expired','chip-states','receive','send','bankrupt','all-motions'];
  if(!valid.includes(mode))return;
  demoPreview=true;activeCode='MHJ-DEMO';currentRoomMode=mode;
  $('joinPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');
@@ -293,9 +339,10 @@ function startDemoPreview(){
  currentState=sample;lastPlayerBalances=new Map(sample.players.map(p=>[String(p.name||''),Number(p.chips)||0]));render(sample,false);
  if(['manual','expired','finished'].includes(mode))showRoomStatus(mode,true);
  else{
-  $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='chip-states'?'Perbandingan saldo dengan modal awal':mode==='receive'?'Simulasi menerima chip dari lawan':mode==='send'?'Simulasi mengirim chip ke lawan':mode==='bankrupt'?'Simulasi kondisi bangkrut':'Simulasi transaksi chip';
-  $('momentText').textContent=mode==='chip-states'?'Profit · Netral · Loss · Bangkrut':mode==='bankrupt'?'Animasi khusus bangkrut · data simulasi saja':mode==='receive'?'Gerakan penerima saja · data simulasi':mode==='send'?'Gerakan pengirim saja · data simulasi':'Animasi transfer hanya simulasi, data asli tidak diubah';
-  if(mode==='receive'||mode==='send'){
+  $('momentEmoji').textContent='';$('momentTitle').textContent=mode==='all-motions'?'Demo semua gerakan · arah seat':mode==='chip-states'?'Perbandingan saldo dengan modal awal':mode==='receive'?'Simulasi menerima chip dari lawan':mode==='send'?'Simulasi mengirim chip ke lawan':mode==='bankrupt'?'Simulasi kondisi bangkrut':'Simulasi transaksi chip';
+  $('momentText').textContent=mode==='all-motions'?'East: tawa · South: kedip · West: air mata/terima · North: bangkrut/kirim · demo saja':mode==='chip-states'?'Profit · Netral · Loss · Bangkrut':mode==='bankrupt'?'Animasi khusus bangkrut · data simulasi saja':mode==='receive'?'Gerakan penerima saja · data simulasi':mode==='send'?'Gerakan pengirim saja · data simulasi':'Animasi transfer hanya simulasi, data asli tidak diubah';
+  if(mode==='all-motions')startAllMotionsDemo();
+  else if(mode==='receive'||mode==='send'){
    const transfer=mode==='receive'?{from:'Alex',to:'Morgan',amount:250,chipCounts:{100:2,25:2},time:'DEMO'}:{from:'Morgan',to:'Jamie',amount:250,chipCounts:{100:2,25:2},time:'DEMO'};
    playTransferMoment(transfer,mode);
   }
@@ -305,7 +352,7 @@ function startDemoPreview(){
  $('lastUpdate').textContent='Tampilan simulasi · data asli tidak diubah';
 }
 startDemoPreview();
-$('changeRoom').addEventListener('click',()=>{if(pollHandle)clearInterval(pollHandle);pollHandle=null;activeCode='';remoteStamp='';currentState=null;currentRoomMode='';hideRoomStatus();$('dashboard').classList.add('hidden');$('joinPanel').classList.remove('hidden');$('joinBtn').disabled=false;$('joinBtn').textContent='MASUK';hint('Masukkan kode room yang ingin dilihat.');$('roomCode').value='';});
+$('changeRoom').addEventListener('click',()=>{stopAllMotionsDemo();if(pollHandle)clearInterval(pollHandle);pollHandle=null;activeCode='';remoteStamp='';currentState=null;currentRoomMode='';hideRoomStatus();$('dashboard').classList.add('hidden');$('joinPanel').classList.remove('hidden');$('joinBtn').disabled=false;$('joinBtn').textContent='MASUK';hint('Masukkan kode room yang ingin dilihat.');$('roomCode').value='';});
 </script><script id="mahjong-mobile-zoom-lock">
 (function () {
   var preventMultiTouch = function (event) {
